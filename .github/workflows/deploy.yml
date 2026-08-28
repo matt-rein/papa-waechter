@@ -106,35 +106,40 @@ jobs:
           ENDSSH
 
       - name: Deploy via rsync
-        # --exclude schützt die Ordner mit echten Daten: sie werden weder
-        # hochgeladen noch von --delete erwischt. data/ enthält die SQLite-Datei
-        # mit allen Check-ins, photos/ die Familienbilder – beide sind
-        # gitignoriert und lägen ohne --exclude nach dem ersten Deploy im Nichts.
+        # WICHTIG: alle projektbezogenen Muster mit führendem "/" verankern.
+        # Ohne den Slash greift ein Muster auf JEDER Ebene – "data/" hätte sonst
+        # auch vendor/symfony/string/Resources/data/ ausgelassen und die
+        # Anwendung auf dem Server unbrauchbar gemacht.
+        #
+        # Ausgenommen bleiben die Ordner mit echten Daten: data/ enthält die
+        # SQLite-Datei mit allen Check-ins, photos/ die Familienbilder. Beide
+        # sind gitignoriert und lägen ohne --exclude nach dem ersten --delete
+        # im Nichts.
         run: |
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_SSH_PORT || 22 }}" \
-            --exclude='.git/' \
-            --exclude='.github/' \
-            --exclude='.gitignore' \
-            --exclude='.gitattributes' \
-            --exclude='.editorconfig' \
-            --exclude='.idea/' \
-            --exclude='.claude/' \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/.gitignore' \
+            --exclude='/.gitattributes' \
+            --exclude='/.editorconfig' \
+            --exclude='/.idea/' \
+            --exclude='/.claude/' \
             --exclude='.DS_Store' \
-            --exclude='.env.local' \
-            --exclude='.env.*.local' \
-            --exclude='.env.dev' \
-            --exclude='.env.test' \
-            --exclude='data/' \
-            --exclude='photos/' \
-            --exclude='var/' \
-            --exclude='tests/' \
-            --exclude='docker/' \
-            --exclude='frankenphp/' \
-            --exclude='Dockerfile' \
-            --exclude='.dockerignore' \
-            --exclude='compose*.yaml' \
-            --exclude='*.md' \
+            --exclude='/.env.local' \
+            --exclude='/.env.*.local' \
+            --exclude='/.env.dev' \
+            --exclude='/.env.test' \
+            --exclude='/data/' \
+            --exclude='/photos/' \
+            --exclude='/var/' \
+            --exclude='/tests/' \
+            --exclude='/docker/' \
+            --exclude='/frankenphp/' \
+            --exclude='/Dockerfile' \
+            --exclude='/.dockerignore' \
+            --exclude='/compose*.yaml' \
+            --exclude='/*.md' \
             ./ \
             "${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/"
 
