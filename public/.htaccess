@@ -41,6 +41,12 @@ DirectoryIndex index.php
     </IfModule>
 </IfModule>
 
+# Ohne diese Zeile liefert Apache das Manifest ohne Typ aus. iOS stört das
+# nicht (es liest die apple-Angaben), Android erwartet aber den richtigen Typ.
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
 # Der geheime Check-in-Link steht in der URL – er hat in keinem Referrer-Header
 # einer fremden Seite etwas zu suchen.
 <IfModule mod_headers.c>
