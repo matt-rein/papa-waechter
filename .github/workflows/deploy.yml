@@ -1,0 +1,166 @@
+name: Deploy to Production
+
+on:
+  # Benötigte Secrets: DEPLOY_SSH_KEY, DEPLOY_SSH_HOST, DEPLOY_SSH_USER,
+  # DEPLOY_PATH. Optional: DEPLOY_SSH_PORT (Default 22),
+  # DEPLOY_PHP_BIN (Default php83 – das nackte php ist am df.eu 7.4),
+  # DEPLOY_HEALTHCHECK_URL.
+  #
+  # Auf dem Server muss einmalig .env.local angelegt sein (Vorlage:
+  # .env.local.dist) – mit APP_ENV=prod und den Zugangsdaten. Der Workflow
+  # prüft das und bricht sonst ab.
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          # gd/exif werden für die Familienfotos gebraucht, pdo_sqlite für die DB.
+          extensions: intl, pdo, pdo_sqlite, gd, exif, mbstring, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+        env:
+          APP_ENV: prod
+
+      # Kein Asset-Build: das CSS liegt fertig in public/, JavaScript steht
+      # inline in den Templates. Für frische Assets im Browser sorgt
+      # APP_ASSET_VERSION (siehe unten).
+
+      - name: Lint
+        run: |
+          php bin/console lint:twig templates --env=prod
+          php bin/console lint:container --env=prod
+        env:
+          APP_ENV: prod
+          APP_SECRET: ci-only-not-a-real-secret
+          APP_ASSET_VERSION: ci
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.DEPLOY_SSH_PORT || 22 }}" -H "${{ secrets.DEPLOY_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Check server configuration
+        # Lieber hier abbrechen als die Seite im Dev-Modus laufen lassen.
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.DEPLOY_SSH_PORT || 22 }}" \
+            "${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}" << 'ENDSSH'
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            if [ ! -f .env.local ]; then
+              echo "::error::.env.local fehlt auf dem Server. Vorlage: .env.local.dist"
+              exit 1
+            fi
+            if ! grep -qE '^APP_ENV=prod' .env.local; then
+              echo "::error::In .env.local fehlt APP_ENV=prod – die App liefe im Dev-Modus."
+              exit 1
+            fi
+
+            # An diesen Ordnern hängen Daten, die kein Deploy anfassen darf.
+            mkdir -p data photos var/cache var/log var/photo-cache
+          ENDSSH
+
+      - name: Deploy via rsync
+        # --exclude schützt die Ordner mit echten Daten: sie werden weder
+        # hochgeladen noch von --delete erwischt. data/ enthält die SQLite-Datei
+        # mit allen Check-ins, photos/ die Familienbilder – beide sind
+        # gitignoriert und lägen ohne --exclude nach dem ersten Deploy im Nichts.
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_SSH_PORT || 22 }}" \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='.editorconfig' \
+            --exclude='.idea/' \
+            --exclude='.claude/' \
+            --exclude='.DS_Store' \
+            --exclude='.env.local' \
+            --exclude='.env.*.local' \
+            --exclude='.env.dev' \
+            --exclude='.env.test' \
+            --exclude='data/' \
+            --exclude='photos/' \
+            --exclude='var/' \
+            --exclude='tests/' \
+            --exclude='docker/' \
+            --exclude='frankenphp/' \
+            --exclude='Dockerfile' \
+            --exclude='.dockerignore' \
+            --exclude='compose*.yaml' \
+            --exclude='*.md' \
+            ./ \
+            "${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+
+      - name: Run post-deploy commands on server
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.DEPLOY_SSH_PORT || 22 }}" \
+            "${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}" << 'ENDSSH'
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+            PHP="${{ secrets.DEPLOY_PHP_BIN || 'php83' }}"
+            "$PHP" -v | head -1
+
+            # Sicherung vor jeder Schemaänderung, die letzten 10 behalten.
+            # data/ ist im rsync ausgenommen, die Backups überleben --delete.
+            if [ -f data/data_prod.db ]; then
+              cp -p data/data_prod.db "data/data_prod.db.backup-$(date +%Y%m%d-%H%M%S)"
+              ls -1t data/data_prod.db.backup-* 2>/dev/null | tail -n +11 | xargs -r rm --
+            fi
+
+            # Frische Asset-URLs (?v=...) – sonst hängt Papas iPad am alten CSS.
+            SHA="${{ github.sha }}"
+            if grep -q '^APP_ASSET_VERSION=' .env.local; then
+              sed -i "s/^APP_ASSET_VERSION=.*/APP_ASSET_VERSION=${SHA}/" .env.local
+            else
+              printf '\nAPP_ASSET_VERSION=%s\n' "$SHA" >> .env.local
+            fi
+
+            "$PHP" bin/console cache:clear --env=prod --no-debug
+            "$PHP" bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+            "$PHP" bin/console cache:warmup --env=prod --no-debug
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          url="${{ secrets.DEPLOY_HEALTHCHECK_URL }}"
+          if [ -z "$url" ]; then
+            echo "DEPLOY_HEALTHCHECK_URL nicht gesetzt – Prüfung übersprungen."
+            exit 0
+          fi
+          status=$(curl -sLo /dev/null -w "%{http_code}" --max-time 15 "$url")
+          echo "Healthcheck HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::Deployment healthcheck failed (got $status)"
+            exit 1
+          fi

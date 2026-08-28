@@ -1,0 +1,72 @@
+# Lokale Entwicklungs-/Test-Umgebung.
+#   Start:   docker compose up --build
+#   App:     http://localhost:8080
+#   Mails:   http://localhost:8025  (Mailpit – hier landen alle Alarm-Mails)
+#
+# Der Quellcode wird ins Image gemountet, Änderungen sind sofort wirksam.
+
+services:
+  app:
+    build: .
+    environment:
+      APP_ENV: dev
+      # Ohne Debug=1 kompiliert Twig die Templates nur einmal – Änderungen am
+      # gemounteten Quellcode wären dann erst nach einem cache:clear sichtbar.
+      APP_DEBUG: "1"
+      APP_SECRET: dev-secret-not-for-production
+      # Pfad des Bilder-Ordners auf diesem Rechner (für die Anzeige im Finder).
+      APP_PHOTO_DIR_LABEL: "${PWD}/photos"
+      # Plain HTTP auf Port 80 im Container (kein TLS lokal).
+      SERVER_NAME: ":80"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/data/data_dev.db"
+      MAILER_DSN: "smtp://mailpit:1025"
+      MAILER_FROM: "Papa-Wächter <papa-waechter@example.com>"
+      DEFAULT_URI: "http://localhost:8080"
+      ALERT_THRESHOLD_HOURS: "24"
+      ALERT_REMINDER_HOURS: "12"
+      APP_TIMEZONE: "Europe/Berlin"
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/app
+      - ./docker/php-dev.ini:/usr/local/etc/php/conf.d/zz-dev.ini:ro
+    depends_on:
+      - mailpit
+
+  # "Cron": ruft regelmäßig die Lebenszeichen-Prüfung auf.
+  # Lokal kurzes Intervall (60s), damit man den Alarm schnell testen kann.
+  cron:
+    build: .
+    command: ["docker/check-alive-loop.sh"]
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: "1"
+      APP_SECRET: dev-secret-not-for-production
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/data/data_dev.db"
+      MAILER_DSN: "smtp://mailpit:1025"
+      MAILER_FROM: "Papa-Wächter <papa-waechter@example.com>"
+      DEFAULT_URI: "http://localhost:8080"
+      ALERT_THRESHOLD_HOURS: "24"
+      ALERT_REMINDER_HOURS: "12"
+      APP_TIMEZONE: "Europe/Berlin"
+      CHECK_INTERVAL: "60"
+    volumes:
+      - ./:/app
+    healthcheck:
+      # Der Healthcheck des Basis-Images fragt den Webserver ab, den dieser
+      # Dienst nicht startet – deshalb ein eigener.
+      test: ["CMD", "/app/docker/cron-healthcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - mailpit
+
+  # Fängt lokal alle ausgehenden E-Mails ab und zeigt sie im Browser.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"  # Web-Oberfläche
+    environment:
+      MP_MAX_MESSAGES: "500"

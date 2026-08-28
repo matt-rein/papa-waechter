@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Lebenszeichen</title>
+
+    {# PWA / Homescreen (iOS) – alles lokal, kein CDN #}
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lebenszeichen">
+    <link rel="apple-touch-icon" href="{{ asset('icons/icon-180.png') }}">
+    <link rel="icon" href="{{ asset('icons/icon-192.png') }}">
+
+    <link rel="stylesheet" href="{{ asset('checkin.css') }}">
+</head>
+<body class="{{ photo ? 'has-photo' : '' }}{{ (justConfirmed or confirmedToday) ? ' confirmed' : '' }}">
+    {% if photo %}
+        {# Familienfoto des Tages. <img> statt CSS-Hintergrund, damit iOS die
+           EXIF-Drehung von Handyfotos berücksichtigt. #}
+        <img class="bg-photo" src="{{ path('app_checkin_photo', {token: token, name: photo}) }}" alt="">
+        <div class="bg-scrim"></div>
+    {% endif %}
+
+    <main class="wrap">
+        {% if justConfirmed or confirmedToday %}
+            <div class="status done">
+                <div class="big-check">✓</div>
+                <p class="title">Danke, {{ watchee.name }}!</p>
+                <p class="sub">Dein Lebenszeichen ist angekommen.<br>Bis morgen!</p>
+            </div>
+            {% if last %}
+                <p class="last-info">
+                    Zuletzt bestätigt:
+                    {{ last.occurredAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr
+                </p>
+            {% endif %}
+        {% else %}
+            <h1>Hallo {{ watchee.name }}!</h1>
+            <p class="greeting">Alles in Ordnung heute?</p>
+
+            <form class="confirm-form" method="post" action="{{ path('app_checkin_confirm', {token: token}) }}">
+                <button type="submit" class="confirm-btn">
+                    <span class="check">✓</span>
+                    Mir geht&rsquo;s gut
+                </button>
+            </form>
+
+            {% if last %}
+                <p class="last-info">
+                    Zuletzt bestätigt:
+                    {{ last.occurredAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr
+                </p>
+            {% endif %}
+        {% endif %}
+
+        <p class="footer-note">
+            Ein Tipp am Tag genügt. Deine Kinder sehen dann, dass alles gut ist.
+        </p>
+    </main>
+</body>
+</html>

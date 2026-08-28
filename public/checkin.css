@@ -1,0 +1,283 @@
+/* Eigenständiges, lokal ausgeliefertes Stylesheet für Papas Seite.
+   Bewusst groß, kontrastreich und ohne externe Abhängigkeiten. */
+
+:root {
+    --green: #2e7d32;
+    --green-dark: #1b5e20;
+    --bg: #f4f6f8;
+    --text: #1a1a1a;
+    --muted: #5a6472;
+    --card: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+    width: 100%;
+    max-width: 560px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 2rem;
+    margin: 0 0 4px;
+}
+
+.greeting {
+    font-size: 1.5rem;
+    color: var(--muted);
+    margin: 0 0 32px;
+}
+
+/* Der große Bestätigungs-Knopf */
+.confirm-form {
+    margin: 0;
+}
+
+.confirm-btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 24px;
+    background: var(--green);
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 48px 24px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(46, 125, 50, 0.35);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.confirm-btn:active {
+    transform: scale(0.98);
+    background: var(--green-dark);
+}
+
+.confirm-btn .check {
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 8px;
+}
+
+/* Erfolgs-/Status-Karte */
+.status {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.status.done {
+    border: 3px solid var(--green);
+}
+
+.status .big-check {
+    font-size: 4rem;
+    color: var(--green);
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.status .title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.status .sub {
+    font-size: 1.2rem;
+    color: var(--muted);
+    margin: 0;
+}
+
+.footer-note {
+    margin-top: 28px;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.last-info {
+    margin-top: 20px;
+    font-size: 1.05rem;
+    color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Familienfoto als Hintergrund
+
+   Alles hier hängt an .has-photo: ohne Bilder im Portfolio sieht die Seite
+   unverändert aus wie vorher.
+   --------------------------------------------------------------------------- */
+
+body.has-photo {
+    /* Dunkler Grund, solange das Foto noch lädt – kein weißes Aufblitzen. */
+    background: #14181d;
+}
+
+.bg-photo {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Bei sehr hohen Hochkant-Bildern lieber die Gesichter oben zeigen. */
+    object-position: center 40%;
+    z-index: 0;
+    /* Sanft einblenden, sobald das Bild da ist. */
+    animation: photo-in 0.6s ease both;
+}
+
+@keyframes photo-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bg-photo { animation: none; }
+}
+
+/* Leichter Schleier über dem ganzen Bild. Bewusst zurückhaltend – für den
+   Kontrast sorgt der Kasten hinter dem Text, hier geht es nur darum, dass sehr
+   grelle Fotos nicht blenden. */
+.bg-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.30) 0%,
+        rgba(0, 0, 0, 0.12) 40%,
+        rgba(0, 0, 0, 0.40) 100%
+    );
+}
+
+/* Eigene, weiche Abdunklung direkt hinter dem Text. Damit bleibt die Schrift
+   auch dann klar lesbar, wenn genau an dieser Stelle ein heller Himmel liegt. */
+body.has-photo .wrap {
+    position: relative;
+    z-index: 2;
+    background: rgba(10, 14, 18, 0.52);
+    border-radius: 28px;
+    padding: 28px 22px 24px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+body.has-photo h1 {
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+body.has-photo .greeting {
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+    margin-bottom: 28px;
+}
+
+body.has-photo .last-info,
+body.has-photo .footer-note {
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Der Knopf bekommt auf dem Foto einen hellen Rand, damit er sich sicher
+   abhebt – auch vor einer grünen Wiese. */
+body.has-photo .confirm-btn {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+
+/* Die Erfolgs-Karte bleibt weiß und deckend – bester Kontrast. */
+body.has-photo .status {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* Etwas schlanker als ohne Foto – der Knopf bleibt groß genug zum sicheren
+   Treffen, nimmt dem Bild aber weniger Platz weg. */
+body.has-photo .confirm-btn {
+    padding: 36px 24px;
+    font-size: 1.85rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+body.has-photo .confirm-btn .check {
+    font-size: 2.4rem;
+    margin-bottom: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Nach dem Bestätigen: die Oberfläche tritt zurück, das Foto bekommt die Bühne.
+   --------------------------------------------------------------------------- */
+
+body.has-photo.confirmed .bg-scrim {
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.18) 0%,
+        rgba(0, 0, 0, 0.06) 40%,
+        rgba(0, 0, 0, 0.28) 100%
+    );
+}
+
+/* Kein dunkler Kasten mehr – nur noch die kleine Bestätigung selbst. */
+body.has-photo.confirmed .wrap {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+}
+
+body.has-photo.confirmed .status,
+body.has-photo.confirmed .status.done {
+    display: inline-block;
+    border: none;
+    border-radius: 24px;
+    background: rgba(10, 14, 18, 0.48);
+    padding: 20px 30px;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+body.has-photo.confirmed .status .big-check {
+    font-size: 2.6rem;
+    color: #86e39b;
+    margin-bottom: 2px;
+}
+
+body.has-photo.confirmed .status .title {
+    color: #fff;
+    font-size: 1.45rem;
+}
+
+body.has-photo.confirmed .status .sub {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.05rem;
+}
+
+/* Die Fußzeilen erklären das Prinzip – nach dem Tippen weiß Papa das schon. */
+body.has-photo.confirmed .last-info,
+body.has-photo.confirmed .footer-note {
+    display: none;
+}

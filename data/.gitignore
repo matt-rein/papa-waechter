@@ -1,0 +1,3 @@
+# Der Ordner bleibt im Repo, die Datenbank darin nicht.
+*
+!.gitignore

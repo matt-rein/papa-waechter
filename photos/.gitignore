@@ -1,0 +1,3 @@
+# Der Ordner bleibt im Repo, die Bilder darin nicht.
+*
+!.gitignore

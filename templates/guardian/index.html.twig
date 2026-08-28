@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Wächter verwalten – Papa-Wächter{% endblock %}
+
+{% block body %}
+{{ include('_topbar.html.twig', {active: 'guardians'}) }}
+
+<div class="container">
+    {{ include('_flashes.html.twig') }}
+
+    <div class="card">
+        <h1>Wächter</h1>
+        <p class="card-intro">
+            Wächter sind die Personen, die sich hier anmelden dürfen und im Ernstfall
+            die Alarm-Mail bekommen. Alle Wächter haben die gleichen Rechte.
+        </p>
+
+        <table class="history guardians">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>E-Mail</th>
+                    <th>Alarm-Mails</th>
+                    <th class="col-actions">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in guardians %}
+                    <tr>
+                        <td>
+                            {{ g.name }}
+                            {% if g.id == app.user.id %}<span class="badge">du</span>{% endif %}
+                        </td>
+                        <td class="mail">{{ g.email }}</td>
+                        <td>
+                            <form method="post" action="{{ path('app_guardian_alerts', {id: g.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('guardian_alerts_' ~ g.id) }}">
+                                <button type="submit" class="toggle {{ g.receivesAlerts ? 'on' : 'off' }}"
+                                        title="Alarm-Mails an- oder abschalten">
+                                    {{ g.receivesAlerts ? '✓ ja' : '– nein' }}
+                                </button>
+                            </form>
+                        </td>
+                        <td class="col-actions">
+                            <div class="actions">
+                            <details class="row-action">
+                                <summary>Passwort setzen</summary>
+                                <form method="post" action="{{ path('app_guardian_password', {id: g.id}) }}" class="inline-form">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('guardian_password_' ~ g.id) }}">
+                                    <input type="password" name="password" placeholder="Neues Passwort"
+                                           autocomplete="new-password" minlength="8" required>
+                                    <input type="password" name="passwordRepeat" placeholder="Wiederholen"
+                                           autocomplete="new-password" minlength="8" required>
+                                    <button type="submit" class="btn-small">Speichern</button>
+                                </form>
+                            </details>
+
+                            {% if g.id != app.user.id %}
+                                <form method="post" action="{{ path('app_guardian_delete', {id: g.id}) }}"
+                                      onsubmit="return confirm('Wächter „{{ g.name|e('js') }}“ wirklich löschen?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('guardian_delete_' ~ g.id) }}">
+                                    <button type="submit" class="btn-small danger">Löschen</button>
+                                </form>
+                            {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Neuen Wächter anlegen</h2>
+        <form method="post" action="{{ path('app_guardian_new') }}" class="stacked-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('guardian_new') }}">
+
+            <label for="newName">Name</label>
+            <input type="text" id="newName" name="name" required maxlength="120" placeholder="z. B. Schwester">
+
+            <label for="newEmail">E-Mail (das ist gleichzeitig der Benutzername)</label>
+            <input type="email" id="newEmail" name="email" required maxlength="180" autocomplete="off">
+
+            <label for="newPassword">Passwort (mindestens 8 Zeichen)</label>
+            <input type="password" id="newPassword" name="password" required minlength="8" autocomplete="new-password">
+
+            <label for="newPasswordRepeat">Passwort wiederholen</label>
+            <input type="password" id="newPasswordRepeat" name="passwordRepeat" required minlength="8" autocomplete="new-password">
+
+            <label class="check-label">
+                <input type="checkbox" name="receivesAlerts" value="1" checked>
+                Soll die Alarm-Mails erhalten
+            </label>
+
+            <button type="submit">Wächter anlegen</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Familienfotos</h2>
+        <p class="card-intro">
+            Papa sieht auf seiner Seite jeden Tag ein anderes Familienfoto im
+            Hintergrund. Bilder hinzufügen geht auf zwei Wegen: hochladen unter
+            <a href="{{ path('app_photo_index') }}">Fotos</a>, oder die Dateien direkt
+            in den Bilder-Ordner ziehen – der Pfad steht ebenfalls dort.
+        </p>
+        <p>
+            <a class="btn-link" href="{{ path('app_photo_index') }}">Zu den Fotos</a>
+        </p>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Mein Passwort ändern</h2>
+        <form method="post" action="{{ path('app_guardian_own_password') }}" class="stacked-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('guardian_own_password') }}">
+
+            <label for="currentPassword">Aktuelles Passwort</label>
+            <input type="password" id="currentPassword" name="currentPassword" required autocomplete="current-password">
+
+            <label for="ownPassword">Neues Passwort</label>
+            <input type="password" id="ownPassword" name="password" required minlength="8" autocomplete="new-password">
+
+            <label for="ownPasswordRepeat">Neues Passwort wiederholen</label>
+            <input type="password" id="ownPasswordRepeat" name="passwordRepeat" required minlength="8" autocomplete="new-password">
+
+            <button type="submit">Passwort ändern</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

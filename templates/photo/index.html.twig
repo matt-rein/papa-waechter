@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Fotos – Papa-Wächter{% endblock %}
+
+{% block body %}
+{{ include('_topbar.html.twig', {active: 'photos'}) }}
+
+<div class="container">
+    {{ include('_flashes.html.twig') }}
+
+    <div class="card">
+        <h1>Familienfotos</h1>
+        <p class="card-intro">
+            Jedes Mal, wenn Papa seine Seite öffnet, liegt eines dieser Bilder im
+            Hintergrund – jeden Tag ein anderes. Erst wenn alle Bilder einmal dran
+            waren, geht es von vorne los, dann in neuer Reihenfolge.
+        </p>
+
+        {% if photos is empty %}
+            <p class="empty-note">
+                Noch keine Bilder vorhanden. Papas Seite sieht dann ganz normal aus –
+                sobald das erste Bild da ist, erscheint es bei ihm im Hintergrund.
+                Zwei Wege führen dahin:
+            </p>
+        {% else %}
+            <p class="photo-summary">
+                <strong>{{ photos|length }}</strong>
+                {{ photos|length == 1 ? 'Bild' : 'Bilder' }} im Portfolio –
+                das reicht für {{ photos|length }}
+                {{ photos|length == 1 ? 'Tag' : 'Tage' }}, bevor sich eines wiederholt.
+            </p>
+        {% endif %}
+
+        <h2 class="way-title">Weg 1: hier hochladen</h2>
+        <form method="post" action="{{ path('app_photo_upload') }}" enctype="multipart/form-data" class="upload-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('photo_upload') }}">
+            <label for="photoInput" class="upload-drop">
+                <span class="upload-icon">🖼️</span>
+                <span class="upload-text">
+                    <strong>Bilder auswählen</strong>
+                    <small>JPEG, PNG, WebP oder GIF – mehrere auf einmal möglich</small>
+                </span>
+            </label>
+            <input type="file" id="photoInput" name="photos[]" accept="image/jpeg,image/png,image/webp,image/gif"
+                   multiple required class="upload-input">
+            <div class="upload-actions">
+                <span class="upload-chosen" id="uploadChosen"></span>
+                <button type="submit">Hochladen</button>
+            </div>
+        </form>
+
+        <p class="hint">
+            Geht von jedem Gerät, auch von unterwegs. Vom iPhone am besten direkt
+            aus der Fotos-App teilen – kommt eine HEIC-Datei an, sagt die Meldung,
+            was zu tun ist.
+        </p>
+
+        <h2 class="way-title">Weg 2: per Finder in den Ordner ziehen</h2>
+        <p>
+            Bilder dürfen auch einfach in diesen Ordner gelegt werden – mit ihren
+            eigenen Namen, in beliebiger Menge:
+        </p>
+        <div class="copy-row">
+            <input type="text" readonly value="{{ directory }}" onclick="this.select();"
+                   aria-label="Ordner für die Familienfotos">
+            <button type="button" class="btn-small" data-copy="{{ directory }}">Kopieren</button>
+        </div>
+        <p>
+            Im Finder mit <strong>⌘⇧G</strong> den Pfad einfügen, den Ordner öffnen und
+            die Bilder hineinziehen. Am bequemsten ist es, ihn einmal in die
+            Finder-Seitenleiste zu ziehen – dann ist er immer einen Klick entfernt.
+            Danach diese Seite neu laden, die Bilder sind sofort dabei.
+        </p>
+        <p class="hint">
+            Erkannt werden <strong>JPG, PNG, WebP und GIF</strong>. Große Bilder werden
+            beim Ausliefern automatisch verkleinert, das Original im Ordner bleibt
+            unangetastet. Unterordner werden nicht durchsucht.
+        </p>
+        <p class="hint">
+            Der Ordner liegt bewusst <em>neben</em> dem Projekt und nicht in
+            <code>var/</code> – dort wird bei Problemen gern mal aufgeräumt. Er
+            gehört nicht ins Repo; für ein Backup genügt es, ihn mitzukopieren.
+        </p>
+    </div>
+
+    {% if ignored is not empty %}
+        <div class="card">
+            <h2 class="card-title">Nicht verwendet</h2>
+            <p class="card-intro">
+                Diese Dateien liegen im Ordner, sind aber keine anzeigbaren Bilder:
+            </p>
+            <ul class="ignored-list">
+                {% for item in ignored %}
+                    <li>
+                        <strong>{{ item.name }}</strong>
+                        <span>{{ item.reason }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if photos is not empty %}
+        <div class="card">
+            <h2 class="card-title">Im Portfolio</h2>
+            <div class="photo-grid">
+                {% for photo in photos %}
+                    <figure class="photo-item {{ photo.name == today ? 'is-today' : '' }}">
+                        <a href="{{ path('app_photo_show', {name: photo.name, size: 'gross'}) }}" target="_blank" rel="noopener">
+                            <img src="{{ path('app_photo_show', {name: photo.name, size: 'klein'}) }}"
+                                 alt="{{ photo.name }}" loading="lazy">
+                        </a>
+                        <figcaption>
+                            <span class="photo-name" title="{{ photo.name }}">{{ photo.name }}</span>
+                            <span class="photo-badges">
+                                {% if photo.name == today %}
+                                    <span class="tag today">heute</span>
+                                {% elseif photo.name == tomorrow %}
+                                    <span class="tag tomorrow">morgen</span>
+                                {% endif %}
+                                <span class="photo-meta">{{ (photo.size / 1024)|round }} KB</span>
+                            <form method="post" action="{{ path('app_photo_delete', {name: photo.name}) }}"
+                                  onsubmit="return confirm('Dieses Bild wirklich löschen?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('photo_delete_' ~ photo.name) }}">
+                                <button type="submit" class="btn-small danger">Löschen</button>
+                            </form>
+                            </span>
+                        </figcaption>
+                    </figure>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{{ include('_copy_script.html.twig') }}
+
+{# Zeigt an, wie viele Bilder ausgewählt wurden – sonst sieht man es nicht. #}
+<script>
+    (function () {
+        var input = document.getElementById('photoInput');
+        var label = document.getElementById('uploadChosen');
+        if (!input || !label) {
+            return;
+        }
+        input.addEventListener('change', function () {
+            var count = input.files ? input.files.length : 0;
+            if (count === 0) {
+                label.textContent = '';
+            } else if (count === 1) {
+                label.textContent = '1 Bild ausgewählt';
+            } else {
+                label.textContent = count + ' Bilder ausgewählt';
+            }
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+# Apache-Konfiguration für klassisches Hosting (DomainFactory).
+# Lokal läuft die App unter FrankenPHP/Caddy – dort wird diese Datei ignoriert.
+#
+# Das Doc-Root der Domain muss auf dieses Verzeichnis (public/) zeigen.
+
+DirectoryIndex index.php
+
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+</IfModule>
+
+<IfModule mod_negotiation.c>
+    # Sonst liefert Apache bei /index eventuell index.php aus, ohne Symfony zu fragen.
+    Options -MultiViews
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Authorization-Header durchreichen (PHP als CGI/FPM sieht ihn sonst nicht).
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Kein abschließender Slash am Front-Controller.
+    RewriteCond %{REQUEST_URI}::$0 ^(/.+)/(.*)::\2$
+    RewriteRule ^(.*) - [E=BASE:%1]
+
+    # Alles, was keine echte Datei ist, geht an Symfony.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ %{ENV:BASE}/index.php [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    <IfModule mod_alias.c>
+        # Ohne mod_rewrite wenigstens ein sprechender Hinweis statt 404.
+        RedirectMatch 307 ^/$ /index.php/
+    </IfModule>
+</IfModule>
+
+# Der geheime Check-in-Link steht in der URL – er hat in keinem Referrer-Header
+# einer fremden Seite etwas zu suchen.
+<IfModule mod_headers.c>
+    Header always set Referrer-Policy "same-origin"
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>

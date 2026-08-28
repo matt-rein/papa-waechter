@@ -1,0 +1,10 @@
+{#- Wandelt eine Stundenzahl in "vor X ..." um. Erwartet: hours (float|null) -#}
+{%- if hours is null -%}
+    unbekannt
+{%- elseif hours < 1 -%}
+    vor {{ (hours * 60)|round }} Min.
+{%- elseif hours < 24 -%}
+    vor {{ hours|round }} Std.
+{%- else -%}
+    vor {{ (hours / 24)|round(1) }} Tag(en)
+{%- endif -%}

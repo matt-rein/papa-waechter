@@ -1,0 +1,7 @@
+# Klassischer, sitzungsbasierter CSRF-Schutz.
+# (Der stateless CSRF-Schutz von Symfony braucht ein JS-Snippet zum Ersetzen des
+#  Platzhalter-Tokens – das wollen wir hier bewusst vermeiden, da wir ohne
+#  JS-Asset-Build und ohne CDN arbeiten.)
+framework:
+    csrf_protection:
+        enabled: true

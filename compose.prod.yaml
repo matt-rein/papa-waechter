@@ -1,0 +1,64 @@
+# Produktions-Setup für den Server.
+#
+#   1. .env.prod.local anlegen (siehe .env.prod.local.dist) mit u. a.:
+#        SERVER_NAME=papa.example.com   # echte Domain -> automatisches HTTPS
+#        APP_SECRET=<zufälliger Wert>
+#        MAILER_DSN=smtp://...          # echter Mailversand
+#   2. Start:  docker compose -f compose.prod.yaml up -d --build
+#
+# HTTPS-Zertifikate holt FrankenPHP automatisch von Let's Encrypt, sofern die
+# Domain auf den Server zeigt und Port 80/443 erreichbar sind.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env.prod.local
+    environment:
+      APP_ENV: prod
+      # Pfad des Bilder-Ordners auf dem Server (nur zur Anzeige).
+      APP_PHOTO_DIR_LABEL: "${PWD}/photos"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - app_var:/app/var         # SQLite-Datenbank, Logs, Bild-Cache
+      # Familienfotos als sichtbarer Ordner neben der compose-Datei: leicht zu
+      # befüllen (scp/rsync), leicht zu sichern, und beim Aufräumen in var/
+      # nicht in Gefahr.
+      - ./photos:/app/photos
+      # Die SQLite-Datei ebenfalls als sichtbarer Ordner – leicht zu sichern.
+      - ./data:/app/data
+      - caddy_data:/data         # TLS-Zertifikate (persistent!)
+      - caddy_config:/config
+
+  # Regelmäßige Lebenszeichen-Prüfung (Standard: alle 15 Minuten).
+  cron:
+    build: .
+    restart: unless-stopped
+    command: ["docker/check-alive-loop.sh"]
+    env_file:
+      - .env.prod.local
+    environment:
+      APP_ENV: prod
+      # Pfad des Bilder-Ordners auf dem Server (nur zur Anzeige).
+      APP_PHOTO_DIR_LABEL: "${PWD}/photos"
+      CHECK_INTERVAL: "900"
+    volumes:
+      - app_var:/app/var         # Cache/Logs
+      - ./data:/app/data         # gleiche Datenbank wie der App-Dienst
+    healthcheck:
+      # Der Healthcheck des Basis-Images fragt den Webserver ab, den dieser
+      # Dienst nicht startet – deshalb ein eigener.
+      test: ["CMD", "/app/docker/cron-healthcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  app_var:
+  caddy_data:
+  caddy_config:

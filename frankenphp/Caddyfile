@@ -1,0 +1,21 @@
+{
+	# FrankenPHP aktivieren.
+	frankenphp
+	# php_server muss vor file_server greifen.
+	order php_server before file_server
+}
+
+# SERVER_NAME kommt aus der Umgebung:
+#   lokal:   localhost  (bzw. :80 ohne TLS)
+#   Server:  papa.example.com  -> automatisches Let's-Encrypt-HTTPS
+{$SERVER_NAME:localhost} {
+	root * /app/public
+	encode zstd br gzip
+
+	# Symfony über den eingebauten PHP-Server (klassisch, ein Request pro Prozess).
+	php_server
+
+	log {
+		output stderr
+	}
+}

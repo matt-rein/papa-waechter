@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Übersicht – Papa-Wächter{% endblock %}
+
+{% block body %}
+{{ include('_topbar.html.twig', {active: 'dashboard'}) }}
+
+<div class="container">
+    {{ include('_flashes.html.twig') }}
+
+    {% for item in items %}
+        {% set s = item.status %}
+        {% set level = s.level %}
+        <div class="watchee-card">
+            <div class="watchee-head">
+                <div class="lamp {{ level }}"></div>
+                <div>
+                    <p class="watchee-name">{{ s.watchee.name }}</p>
+                    <p class="status-line {{ level }}">
+                        {% if level == 'ok' %}
+                            Alles in Ordnung
+                        {% elseif level == 'warn' %}
+                            Länger kein Lebenszeichen – bald fällig
+                        {% else %}
+                            ⚠️ Überfällig! Seit über {{ s.thresholdHours }} Stunden kein Lebenszeichen
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="meta">
+                {% if s.last %}
+                    Letzte Bestätigung:
+                    <strong>{{ s.last.occurredAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr</strong>
+                    ({{ include('dashboard/_ago.html.twig', {hours: s.hoursSince}) }})
+                {% else %}
+                    <em>Noch kein Lebenszeichen aufgezeichnet.</em>
+                {% endif %}
+            </div>
+
+            <h2>Verlauf</h2>
+            <table class="history">
+                <thead>
+                    <tr><th>Datum</th><th>Uhrzeit</th><th>Gerät</th></tr>
+                </thead>
+                <tbody>
+                    {% for c in item.recent %}
+                        <tr>
+                            <td>{{ c.occurredAt|date('d.m.Y', timezone) }}</td>
+                            <td>{{ c.occurredAt|date('H:i', timezone) }} Uhr</td>
+                            <td>{{ c.userAgent ? (c.userAgent|slice(0, 40)) : '–' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="3" class="empty">Noch keine Einträge.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="watchee-card">
+            <p>Es ist noch keine überwachte Person angelegt.</p>
+            <p class="muted">
+                Anlegen auf dem Server mit
+                <code>php bin/console app:watchee:create</code> –
+                siehe Bedienungsanleitung unten.
+            </p>
+        </div>
+    {% endfor %}
+
+    {{ include('dashboard/_manual.html.twig', {
+        items: items,
+        thresholdHours: thresholdHours,
+        reminderHours: reminderHours,
+    }) }}
+</div>
+{% endblock %}

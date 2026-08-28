@@ -1,0 +1,246 @@
+{#- Bedienungsanleitung für die Wächter. Bewusst fest im Template hinterlegt –
+    sie beschreibt Abläufe, die sich nicht aus den Daten ergeben.
+    Erwartet: items, thresholdHours, reminderHours -#}
+<details class="manual">
+    <summary>
+        <span class="manual-icon">📖</span>
+        <span>
+            <strong>Bedienungsanleitung</strong>
+            <small>Homescreen-Symbol einrichten, Fotos einstellen, Wächter anlegen, Ampel verstehen</small>
+        </span>
+    </summary>
+
+    <div class="manual-body">
+
+        <details class="manual-topic" open>
+            <summary>1. Papas „App“-Symbol auf iPad oder iPhone legen</summary>
+            <div class="topic-body">
+                <p>
+                    Papa braucht keinen Login und kein Passwort. Sein Zugang steckt komplett
+                    im Check-in-Link. Damit er ihn nicht jedes Mal suchen muss, wird der Link
+                    einmalig als Symbol auf den Home-Bildschirm gelegt – danach sieht und
+                    startet er ihn wie eine ganz normale App.
+                </p>
+
+                {% for item in items %}
+                    {% set link = url('app_checkin_show', {token: item.status.watchee.checkinToken}) %}
+                    <p class="link-label">Check-in-Link für <strong>{{ item.status.watchee.name }}</strong>:</p>
+                    <div class="copy-row">
+                        <input type="text" readonly value="{{ link }}" onclick="this.select();"
+                               aria-label="Check-in-Link für {{ item.status.watchee.name }}">
+                        <button type="button" class="btn-small" data-copy="{{ link }}">Kopieren</button>
+                    </div>
+                {% endfor %}
+
+                <p class="hint warn-hint">
+                    ⚠️ Dieser Link ist wie ein Schlüssel: Wer ihn hat, kann Lebenszeichen
+                    abgeben. Also nicht öffentlich posten und nicht in ein offenes Formular
+                    tippen. Per Mail oder Nachricht direkt an Papa ist in Ordnung.
+                </p>
+
+                <p><strong>So kommt das Symbol auf das Gerät (iOS/iPadOS):</strong></p>
+                <ol>
+                    <li>Den Link oben kopieren und Papa schicken – oder das Gerät kurz selbst in die Hand nehmen.</li>
+                    <li>Den Link <strong>in Safari</strong> öffnen. Wichtig: Safari, nicht Chrome und
+                        nicht der eingebaute Browser von WhatsApp – nur Safari kann Symbole anlegen.
+                        (Aus WhatsApp heraus: unten rechts auf das Teilen-Symbol und
+                        „In Safari öffnen“ wählen.)</li>
+                    <li>Unten (iPhone) bzw. oben (iPad) auf das <strong>Teilen-Symbol</strong> tippen –
+                        das Quadrat mit dem Pfeil nach oben.</li>
+                    <li>In der Liste nach unten scrollen bis <strong>„Zum Home-Bildschirm“</strong> und darauf tippen.</li>
+                    <li>Als Namen z. B. <strong>„Lebenszeichen“</strong> eingeben und oben rechts auf <strong>„Hinzufügen“</strong>.</li>
+                    <li>Fertig – das grüne Symbol liegt jetzt auf dem Home-Bildschirm. Am besten
+                        gleich auf die erste Seite ganz nach oben ziehen, neben Telefon und WhatsApp.</li>
+                </ol>
+
+                <p><strong>Und so benutzt Papa es:</strong> Symbol antippen, auf den großen grünen
+                    Knopf „Mir geht’s gut“ tippen, fertig. Einmal am Tag genügt. Er sieht danach
+                    einen Haken als Bestätigung.</p>
+
+                <p class="hint">
+                    Tipp: Das Symbol beim ersten Mal gemeinsam ausprobieren und danach hier auf
+                    der Übersicht nachsehen, ob die Bestätigung angekommen ist. Ein Tipp erzeugt
+                    sofort einen Eintrag im Verlauf.
+                </p>
+
+                <p class="hint">
+                    Auf Android ist es fast gleich: Link in Chrome öffnen, Menü (drei Punkte),
+                    „Zum Startbildschirm hinzufügen“.
+                </p>
+            </div>
+        </details>
+
+        <details class="manual-topic">
+            <summary>2. Familienfotos für Papas Hintergrund</summary>
+            <div class="topic-body">
+                <p>
+                    Auf Papas Seite liegt im Hintergrund ein Familienfoto – jeden Tag
+                    ein anderes. Innerhalb eines Tages bleibt es dasselbe Bild, auch
+                    wenn er die Seite mehrmals öffnet. Erst wenn alle Bilder einmal an
+                    der Reihe waren, geht es von vorne los, dann in neuer Reihenfolge.
+                </p>
+                <p><strong>Zwei Wege, Bilder hinzuzufügen:</strong></p>
+                <ol>
+                    <li><strong>Hochladen:</strong> in der Kopfzeile auf
+                        <a href="{{ path('app_photo_index') }}">Fotos</a>, dort „Bilder
+                        auswählen“, mehrere markieren, „Hochladen“. Geht von jedem Gerät.</li>
+                    <li><strong>In den Ordner ziehen:</strong> auf derselben Seite steht der
+                        Pfad zum Bilder-Ordner. Im Finder mit ⌘⇧G dorthin springen und die
+                        Bilder hineinziehen – mit ihren eigenen Namen, so viele man will.
+                        Danach die Seite neu laden.</li>
+                </ol>
+                <p>
+                    In der Übersicht ist markiert, welches Bild <strong>heute</strong> dran
+                    ist und welches <strong>morgen</strong> kommt. Große Bilder werden beim
+                    Ausliefern automatisch verkleinert und gerade gedreht; die Originale im
+                    Ordner bleiben unangetastet. Öffentlich im Netz stehen sie nicht –
+                    abrufbar sind sie nur über Papas Check-in-Link und hier im Dashboard.
+                </p>
+                <p class="hint">
+                    Kommt vom iPhone die Meldung, dass HEIC nicht geht: am iPhone unter
+                    <em>Einstellungen › Kamera › Formate</em> auf „Maximale Kompatibilität“
+                    stellen, dann liefert es JPEG. Oder die Bilder vorher am Rechner
+                    exportieren.
+                </p>
+                <p class="hint">
+                    Je mehr Bilder, desto länger dauert es bis zur ersten Wiederholung:
+                    30 Bilder reichen für einen Monat, 100 für gut drei.
+                    Solange kein Bild hochgeladen ist, sieht Papas Seite aus wie vorher.
+                </p>
+            </div>
+        </details>
+
+        <details class="manual-topic">
+            <summary>3. Wächter anlegen, ändern oder löschen</summary>
+            <div class="topic-body">
+                <p>
+                    „Wächter“ sind die Personen, die sich hier anmelden dürfen und im Ernstfall
+                    die Alarm-Mail bekommen – typischerweise die Geschwister. Alle Wächter haben
+                    die gleichen Rechte; es gibt bewusst keinen Extra-Admin.
+                </p>
+                <ol>
+                    <li>Oben in der Kopfzeile auf <a href="{{ path('app_guardian_index') }}">Wächter</a> gehen.</li>
+                    <li>Unter <strong>„Neuen Wächter anlegen“</strong> Name, E-Mail und ein Passwort
+                        (mindestens 8 Zeichen) eintragen und speichern.</li>
+                    <li>Der neuen Person E-Mail-Adresse und Passwort durchgeben – damit meldet
+                        sie sich auf der Startseite an. <strong>Die E-Mail-Adresse ist der Benutzername.</strong></li>
+                    <li>Häkchen <strong>„Soll die Alarm-Mails erhalten“</strong> steuert, ob diese
+                        Person im Ernstfall benachrichtigt wird. Lässt sich später jederzeit
+                        in der Tabelle umschalten.</li>
+                </ol>
+                <p>
+                    <strong>Passwort vergessen?</strong> Jeder Wächter kann in der Tabelle über
+                    „Passwort setzen“ ein neues Passwort für jemand anderen vergeben. Das eigene
+                    Passwort ändert man weiter unten auf derselben Seite – dafür wird das alte
+                    abgefragt.
+                </p>
+                <p>
+                    <strong>Wenn niemand mehr reinkommt</strong> (alle Passwörter weg), hilft nur
+                    die Kommandozeile auf dem Server:
+                </p>
+                <pre><code>docker compose -f compose.prod.yaml exec app \
+  php bin/console app:guardian:password --generate</code></pre>
+                <p class="hint">
+                    Der letzte verbliebene Wächter lässt sich nicht löschen, und man kann sich
+                    nicht selbst löschen – sonst sperrt man sich versehentlich aus.
+                </p>
+            </div>
+        </details>
+
+        <details class="manual-topic">
+            <summary>4. Was die Ampel bedeutet</summary>
+            <div class="topic-body">
+                <ul class="lamp-legend">
+                    <li><span class="dot ok"></span>
+                        <strong>Grün – alles in Ordnung.</strong> Die letzte Bestätigung ist
+                        weniger als {{ thresholdHours }} Stunden her.</li>
+                    <li><span class="dot warn"></span>
+                        <strong>Gelb – Vorwarnung.</strong> Die Frist läuft in weniger als
+                        4 Stunden ab. Noch kein Grund zur Sorge: Papa hat sich heute nur noch
+                        nicht gemeldet. Ein freundlicher Anruf oder eine Nachricht reicht oft.</li>
+                    <li><span class="dot alarm"></span>
+                        <strong>Rot – überfällig.</strong> Seit über {{ thresholdHours }} Stunden
+                        kein Lebenszeichen. Es wurde bereits eine Alarm-Mail verschickt.</li>
+                </ul>
+                <p>
+                    Unter <strong>Verlauf</strong> stehen die letzten 30 Bestätigungen mit Datum,
+                    Uhrzeit und Gerät. Daran sieht man auch, ob Papa das Symbol überhaupt schon
+                    benutzt hat.
+                </p>
+                <p class="hint">
+                    Die Seite aktualisiert sich nicht von selbst – zum Nachsehen einfach neu laden.
+                </p>
+            </div>
+        </details>
+
+        <details class="manual-topic">
+            <summary>5. Was im Alarmfall passiert</summary>
+            <div class="topic-body">
+                <ol>
+                    <li>Der Server prüft alle 15 Minuten automatisch, ob eine Bestätigung fehlt.</li>
+                    <li>Sind mehr als {{ thresholdHours }} Stunden vergangen, geht eine
+                        <strong>Alarm-Mail</strong> an alle Wächter mit gesetztem Häkchen.</li>
+                    <li>Bleibt es dabei, kommt alle {{ reminderHours }} Stunden eine
+                        <strong>Erinnerung</strong> – damit die Mail nicht untergeht.</li>
+                    <li>Sobald Papa wieder tippt, geht automatisch eine <strong>Entwarnung</strong>
+                        raus und die Ampel springt zurück auf Grün.</li>
+                </ol>
+                <p>
+                    <strong>Wichtig:</strong> Ein Alarm heißt nicht automatisch, dass etwas passiert
+                    ist. Häufiger ist es ein leerer Akku, ein verlegtes iPad, kein WLAN oder ein
+                    Tag, an dem Papa es schlicht vergessen hat. Erst anrufen, dann weitersehen.
+                </p>
+                <p class="hint">
+                    Kommen keine Mails an, zuerst im Spam-Ordner nachsehen und dann die
+                    <code>MAILER_DSN</code> in der Server-Konfiguration prüfen.
+                </p>
+            </div>
+        </details>
+
+        <details class="manual-topic">
+            <summary>6. Wenn etwas nicht funktioniert</summary>
+            <div class="topic-body">
+                <dl class="faq">
+                    <dt>Papa tippt, aber hier kommt nichts an.</dt>
+                    <dd>Meist war es nicht das Homescreen-Symbol, sondern ein alter Link im Browser.
+                        Ihn das Symbol vom Home-Bildschirm benutzen lassen und den Verlauf oben prüfen.</dd>
+
+                    <dt>Das Symbol öffnet eine Fehlerseite („nicht gefunden“).</dt>
+                    <dd>Dann stimmt das Token nicht mehr. Neuen Link erzeugen mit
+                        <code>app:watchee:create</code> und das Symbol auf dem Gerät neu anlegen.</dd>
+
+                    <dt>Ich komme nicht ins Dashboard.</dt>
+                    <dd>Benutzername ist die <strong>E-Mail-Adresse</strong>. Ein anderer Wächter
+                        kann unter <a href="{{ path('app_guardian_index') }}">Wächter</a> ein neues
+                        Passwort setzen.</dd>
+
+                    <dt>Der Server war aus.</dt>
+                    <dd>Dann lief auch die Prüfung nicht – es kommt kein Alarm, obwohl die Ampel
+                        später rot ist. Nach einem Neustart läuft alles von selbst weiter.</dd>
+                </dl>
+            </div>
+        </details>
+
+        <details class="manual-topic">
+            <summary>7. Betrieb und Sicherheit</summary>
+            <div class="topic-body">
+                <ul>
+                    <li><strong>Sicherung:</strong> Alle Daten liegen in einer einzigen
+                        SQLite-Datei im Docker-Volume <code>app_var</code>. Diese Datei
+                        gelegentlich sichern, dann ist nichts verloren.</li>
+                    <li><strong>HTTPS ist Pflicht</strong>, weil das geheime Token im Link steht.
+                        Das Zertifikat holt der Server automatisch.</li>
+                    <li><strong>Wächter für den Wächter:</strong> Fällt der Server komplett aus,
+                        alarmiert niemand. Wer ganz sichergehen will, lässt den regelmäßigen Lauf
+                        zusätzlich von einem externen Dienst überwachen.</li>
+                    <li><strong>Datenschutz:</strong> Gespeichert werden nur Zeitpunkt der
+                        Bestätigung sowie IP und Gerät – und das mit Papas Einverständnis.
+                        Nicht heimlich betreiben.</li>
+                </ul>
+            </div>
+        </details>
+
+    </div>
+</details>
+
+{{ include('_copy_script.html.twig') }}
