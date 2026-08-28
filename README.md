@@ -84,8 +84,14 @@ letzten Check-in in der DB löschen – die Alarm-Mail erscheint dann in Mailpit
 
 ## Produktion: DomainFactory (ohne Docker)
 
-Die Domain ist **reinhardt.onl**, PHP ist `php83`, deployt wird per GitHub
+Die Domain ist **reinhardt.onl**, PHP ist `php84`, deployt wird per GitHub
 Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
+
+> **PHP 8.4 ist Pflicht, nicht Geschmackssache.** Die Doctrine-Pakete in der
+> `composer.lock` verlangen `^8.4`; unter 8.3 startet die App nicht.
+> `composer.json` pinnt die Auflösung über `config.platform.php` auf 8.4, damit
+> ein `composer update` auf einem neueren lokalen PHP nichts einschleppt, was
+> auf dem Server fehlt.
 
 ### Einmalige Einrichtung auf dem Server
 
@@ -99,15 +105,15 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
 4. **Erste Daten anlegen** – per SSH im Projektverzeichnis:
 
    ```bash
-   php83 bin/console doctrine:migrations:migrate
-   php83 bin/console app:guardian:create    # Dashboard-Login
-   php83 bin/console app:watchee:create     # gibt den Check-in-Link fürs iPad aus
+   php84 bin/console doctrine:migrations:migrate
+   php84 bin/console app:guardian:create    # Dashboard-Login
+   php84 bin/console app:watchee:create     # gibt den Check-in-Link fürs iPad aus
    ```
 
 5. **Cron-Job eintragen**, alle 15 Minuten:
 
    ```
-   */15 * * * * /usr/bin/php83 /pfad/zum/projekt/bin/console app:check-alive --no-interaction >/dev/null 2>&1
+   */15 * * * * /usr/bin/php84 /pfad/zum/projekt/bin/console app:check-alive --no-interaction >/dev/null 2>&1
    ```
 
    Empfehlung – **Wächter für den Wächter:** einen kostenlosen Check bei
@@ -116,7 +122,7 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
    der den Ausfall bemerkt:
 
    ```
-   */15 * * * * /usr/bin/php83 /pfad/.../bin/console app:check-alive --no-interaction >/dev/null 2>&1 && curl -fsS -m 10 https://hc-ping.com/DEIN-UUID >/dev/null
+   */15 * * * * /usr/bin/php84 /pfad/.../bin/console app:check-alive --no-interaction >/dev/null 2>&1 && curl -fsS -m 10 https://hc-ping.com/DEIN-UUID >/dev/null
    ```
 
 ### GitHub-Secrets
@@ -128,7 +134,7 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
 | `DEPLOY_SSH_USER` | SSH-Benutzer |
 | `DEPLOY_PATH` | Projektverzeichnis auf dem Server (ohne `/public`) |
 | `DEPLOY_SSH_PORT` | optional, Standard 22 |
-| `DEPLOY_PHP_BIN` | optional, Standard `php83` (nacktes `php` ist dort 7.4) |
+| `DEPLOY_PHP_BIN` | optional, Standard `php84` (nacktes `php` ist dort 7.4) |
 | `DEPLOY_HEALTHCHECK_URL` | optional, z. B. `https://reinhardt.onl/login` |
 
 ### Was der Deploy macht
@@ -201,7 +207,7 @@ Kommt niemand mehr ins Dashboard (alle Passwörter vergessen), hilft die
 Kommandozeile – auf dem Server per SSH, im Container per `exec`:
 
 ```bash
-php83 bin/console app:guardian:password --generate
+php84 bin/console app:guardian:password --generate
 docker compose -f compose.prod.yaml exec app php bin/console app:guardian:password --generate
 ```
 
