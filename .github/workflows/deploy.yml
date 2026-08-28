@@ -179,9 +179,30 @@ jobs:
             echo "DEPLOY_HEALTHCHECK_URL nicht gesetzt – Prüfung übersprungen."
             exit 0
           fi
-          status=$(curl -sLo /dev/null -w "%{http_code}" --max-time 15 "$url")
-          echo "Healthcheck HTTP status: $status"
-          if [ "$status" != "200" ]; then
-            echo "::error::Deployment healthcheck failed (got $status)"
-            exit 1
+
+          # GitHub führt Schritte mit "bash -e" aus: ohne set +e bräche der
+          # Schritt schon hier ab und die Auswertung darunter liefe nie.
+          # Genau curls Exit-Code sagt uns aber, WAS schiefging.
+          set +e
+          status=$(curl -sSLo /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/tmp/curl.err)
+          curl_exit=$?
+          set -e
+
+          echo "URL:         $url"
+          echo "HTTP-Status: $status (curl-Exit $curl_exit)"
+          [ -s /tmp/curl.err ] && echo "curl: $(cat /tmp/curl.err)"
+
+          if [ "$status" = "200" ]; then
+            echo "Deployment erreichbar."
+            exit 0
           fi
+
+          case "$curl_exit" in
+            35|51|60) echo "::error::TLS-Problem. Ist SSL für die Domain aktiv und das Zertifikat gültig? (curl-Exit $curl_exit)" ;;
+            6)        echo "::error::Hostname nicht auflösbar." ;;
+            7)        echo "::error::Verbindung abgelehnt." ;;
+            28)       echo "::error::Zeitüberschreitung nach 15 Sekunden." ;;
+            0)        echo "::error::Server antwortet, aber mit HTTP $status statt 200." ;;
+            *)        echo "::error::Healthcheck fehlgeschlagen (HTTP $status, curl-Exit $curl_exit)." ;;
+          esac
+          exit 1
