@@ -37,6 +37,7 @@ lokal ausgeliefert.
 | `photos/` | die Familienbilder (nicht im Repo, nicht im Image) |
 | `templates/dashboard/_manual.html.twig` | Text der Bedienungsanleitung |
 | `src/Command/CheckAliveCommand.php` | die 24h-Prüfung (`app:check-alive`) |
+| `bin/cron-check-alive.sh` | Aufruf der Prüfung für klassische Cron-Dienste |
 | `src/Service/` | Check-in-Aufzeichnung, Statusberechnung, Mailversand |
 
 ---
@@ -110,20 +111,33 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
    php84 bin/console app:watchee:create     # gibt den Check-in-Link fürs iPad aus
    ```
 
-5. **Cron-Job eintragen**, alle 15 Minuten:
+5. **Cron-Job eintragen.** DomainFactory startet nur Shell-Skripte, deshalb
+   liegt eines im Projekt. Alle 15 Minuten aufrufen:
 
    ```
-   */15 * * * * /usr/bin/php84 /pfad/zum/projekt/bin/console app:check-alive --no-interaction >/dev/null 2>&1
+   /kunden/135359_61348/watcher/bin/cron-check-alive.sh
    ```
 
-   Empfehlung – **Wächter für den Wächter:** einen kostenlosen Check bei
-   healthchecks.io anlegen und die Ping-URL anhängen. Läuft der Cron nicht mehr,
-   meldet sich dieser Dienst bei dir. Ohne Container gibt es sonst niemanden,
-   der den Ausfall bemerkt:
+   Das Skript findet sein Projektverzeichnis selbst, sucht ein passendes PHP
+   (mindestens 8.4 – das nackte `php` ist am df.eu 7.4) und schreibt jeden Lauf
+   nach `var/log/check-alive.log`. Bei Erfolg bleibt es still; im Fehlerfall
+   geht die Ausgabe auf stderr, woraus der Cron-Dienst eine E-Mail an dich
+   macht.
+
+   Zwei Dinge lassen sich in `.env.local` einstellen – dort, weil der Deploy
+   diese Datei nie anfasst, Änderungen im Skript selbst aber überschreiben
+   würde:
 
    ```
-   */15 * * * * /usr/bin/php84 /pfad/.../bin/console app:check-alive --no-interaction >/dev/null 2>&1 && curl -fsS -m 10 https://hc-ping.com/DEIN-UUID >/dev/null
+   CRON_PHP_BIN=/usr/bin/php84
+   HEALTHCHECK_PING_URL=https://hc-ping.com/DEINE-UUID
    ```
+
+   Die zweite Zeile ist der **Wächter für den Wächter**: Nach jedem
+   erfolgreichen Lauf pingt das Skript einen kostenlosen Check bei
+   healthchecks.io an. Bleibt der Ping aus, meldet sich dieser Dienst bei dir.
+   Ohne ihn bemerkt niemand, wenn der Cron stehenbleibt – und dann alarmiert
+   im Ernstfall auch niemand.
 
 ### GitHub-Secrets
 
