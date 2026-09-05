@@ -1,9 +1,9 @@
 # Papa-Wächter 🟢
 
-Ein „Lebenszeichen"-System (Dead-Man's-Switch): Papa bestätigt einmal am Tag per
-Tipp auf seinem iPad, dass alles in Ordnung ist. Bleibt die Bestätigung länger als
-24 Stunden aus, werden die Wächter (z. B. Matthias und Schwester) automatisch per
-E-Mail alarmiert.
+Ein „Lebenszeichen"-System (Dead-Man's-Switch): Papa bestätigt morgens und abends
+per Tipp auf seinem iPad, dass alles in Ordnung ist. Bleibt die Bestätigung länger
+als 24 Stunden aus, werden die Wächter (z. B. Matthias und Schwester) automatisch
+per E-Mail alarmiert.
 
 Gebaut mit Symfony 7, SQLite und FrankenPHP. **Ohne CDN** – alle Assets werden
 lokal ausgeliefert.
@@ -14,6 +14,20 @@ lokal ausgeliefert.
 
 - **Papa** öffnet ein Homescreen-Icon (eine Web-Seite als PWA) und tippt auf den
   großen Knopf **„Mir geht's gut"**. Kein Login, Zugang über einen geheimen Link.
+- **Zwei getrennte Fristen.** Nach einer Bestätigung zeigt die Seite den Haken und
+  nennt die Uhrzeit, ab der der Knopf wieder da ist – nach `CHECKIN_WINDOW_HOURS`
+  (Standard 6). So passt „morgens und abends“ hinein. **Alarmiert** wird davon
+  unabhängig erst nach `ALERT_THRESHOLD_HOURS` (Standard 24): ein vergessener
+  Abend weckt niemanden.
+- **Die Seite hält sich selbst aktuell.** Papas App bleibt auf dem iPad im
+  Hintergrund offen, oft tagelang. `public/checkin.js` schaltet deshalb beim
+  Ablauf des Fensters von selbst auf den Knopf um (eigene Uhr, geht auch ohne
+  Netz) und gleicht sich beim Zurückkehren aus dem Hintergrund über
+  `/checkin/{token}/status` mit dem Server ab – Zustand, Uhrzeiten und das Foto
+  des Tages. Gerechnet wird gegen die Serverzeit, damit eine falsch gestellte
+  iPad-Uhr nichts verschiebt. Die HTML-Seite selbst wird mit `no-store`
+  ausgeliefert, damit beim Neustart der App nie ein alter Stand aus dem Cache
+  kommt.
 - **Wächter** melden sich am Dashboard an und sehen eine Status-Ampel
   (grün / gelb / rot) sowie den Verlauf aller Bestätigungen. Auf der Startseite
   steht außerdem eine aufklappbare **Bedienungsanleitung** (Homescreen-Symbol
@@ -29,7 +43,9 @@ lokal ausgeliefert.
 | Datei | Zweck |
 |---|---|
 | `src/Entity/` | `Guardian`, `Watchee` (Papa), `CheckIn`, `AlertState` |
-| `src/Controller/CheckInController.php` | Papas Seite (`/checkin/{token}`) |
+| `src/Controller/CheckInController.php` | Papas Seite (`/checkin/{token}`) + Status als JSON |
+| `src/Service/CheckInWindow.php` | wie lange eine Bestätigung „steht“ |
+| `public/checkin.js` | hält Papas Seite ohne Neuladen aktuell |
 | `src/Controller/DashboardController.php` | Dashboard (`/`) inkl. Bedienungsanleitung |
 | `src/Controller/GuardianController.php` | Wächter-Verwaltung (`/waechter`) |
 | `src/Controller/PhotoController.php` | Foto-Verwaltung (`/fotos`) |
@@ -157,9 +173,9 @@ Bauen in der Action (`composer install --no-dev`), dann `rsync` auf den Server,
 dann per SSH: Datenbank-Backup, `APP_ASSET_VERSION` auf den Git-SHA setzen,
 `cache:clear`, Migrationen, `cache:warmup`. Zum Schluss ein HTTP-Check.
 
-Einen Asset-Build gibt es nicht – das CSS liegt fertig in `public/`, JavaScript
-steht inline in den Templates. CSS-, Template- und Code-Änderungen erledigt der
-`rsync`. Damit Browser die neuen Dateien auch wirklich holen, hängt Symfony an
+Einen Asset-Build gibt es nicht – CSS und JavaScript liegen fertig in `public/`
+(auf dem Dashboard steht daneben etwas JavaScript inline in den Templates).
+CSS-, JS-, Template- und Code-Änderungen erledigt der `rsync`. Damit Browser die neuen Dateien auch wirklich holen, hängt Symfony an
 jede Asset-URL `?v=<Git-SHA>`; das ist besonders für Papas Seite wichtig, die als
 Homescreen-App im Cache liegt.
 
@@ -291,6 +307,7 @@ Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
 | `MAILER_FROM` | Absender der Alarm-Mails |
 | `ALERT_THRESHOLD_HOURS` | Stunden ohne Lebenszeichen bis zum Alarm (Standard 24) |
 | `ALERT_REMINDER_HOURS` | Erinnerungsintervall, solange der Alarm aktiv ist (Standard 12) |
+| `CHECKIN_WINDOW_HOURS` | Stunden, bis Papas Seite wieder den grünen Knopf zeigt (Standard 6) |
 | `APP_TIMEZONE` | Anzeige-Zeitzone (Standard `Europe/Berlin`) |
 | `DEFAULT_URI` | Basis-URL für Links in Mails/CLI |
 | `APP_ASSET_VERSION` | Cache-Busting für CSS; setzt der Deploy auf den Git-SHA |

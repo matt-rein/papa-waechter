@@ -24,6 +24,7 @@ services:
       DEFAULT_URI: "http://localhost:8080"
       ALERT_THRESHOLD_HOURS: "24"
       ALERT_REMINDER_HOURS: "12"
+      CHECKIN_WINDOW_HOURS: "6"
       APP_TIMEZONE: "Europe/Berlin"
     ports:
       - "8080:80"

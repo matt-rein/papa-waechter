@@ -16,30 +16,33 @@
 
     <link rel="stylesheet" href="{{ asset('checkin.css') }}">
 </head>
-<body class="{{ photo ? 'has-photo' : '' }}{{ (justConfirmed or confirmedToday) ? ' confirmed' : '' }}">
-    {% if photo %}
+{#- Beide Zustände stehen im Dokument; welcher sichtbar ist, entscheidet das
+    Skript unten. Ohne JavaScript bleibt es bei dem, was der Server gerendert
+    hat – dann ist die Seite eben erst nach dem Neuladen wieder aktuell. -#}
+<body class="{{ state.photoUrl ? 'has-photo' : '' }}{{ state.confirmed ? ' confirmed' : '' }}"
+      data-status-url="{{ path('app_checkin_status', {token: token}) }}"
+      data-state="{{ state|json_encode|e('html_attr') }}">
+    {% if state.photoUrl %}
         {# Familienfoto des Tages. <img> statt CSS-Hintergrund, damit iOS die
            EXIF-Drehung von Handyfotos berücksichtigt. #}
-        <img class="bg-photo" src="{{ path('app_checkin_photo', {token: token, name: photo}) }}" alt="">
+        <img class="bg-photo" id="bg-photo" src="{{ state.photoUrl }}" alt="">
         <div class="bg-scrim"></div>
     {% endif %}
 
     <main class="wrap">
-        {% if justConfirmed or confirmedToday %}
-            <div class="status done">
-                <div class="big-check">✓</div>
-                <p class="title">Danke, {{ watchee.name }}!</p>
-                <p class="sub">Dein Lebenszeichen ist angekommen.<br>Bis morgen!</p>
-            </div>
-            {% if last %}
-                <p class="last-info">
-                    Zuletzt bestätigt:
-                    {{ last.occurredAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr
-                </p>
-            {% endif %}
-        {% else %}
+        <div class="status done" id="view-done"{{ state.confirmed ? '' : ' hidden' }}>
+            <div class="big-check">✓</div>
+            <p class="title">Danke, {{ watchee.name }}!</p>
+            <p class="sub">Dein Lebenszeichen ist angekommen.</p>
+            <p class="next-info">
+                Der grüne Knopf ist ab <strong id="next-at">{{ state.nextText }}</strong> Uhr
+                wieder da.
+            </p>
+        </div>
+
+        <div id="view-ask"{{ state.confirmed ? ' hidden' : '' }}>
             <h1>Hallo {{ watchee.name }}!</h1>
-            <p class="greeting">Alles in Ordnung heute?</p>
+            <p class="greeting">Alles in Ordnung?</p>
 
             <form class="confirm-form" method="post" action="{{ path('app_checkin_confirm', {token: token}) }}">
                 <button type="submit" class="confirm-btn">
@@ -47,18 +50,18 @@
                     Mir geht&rsquo;s gut
                 </button>
             </form>
+        </div>
 
-            {% if last %}
-                <p class="last-info">
-                    Zuletzt bestätigt:
-                    {{ last.occurredAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr
-                </p>
-            {% endif %}
-        {% endif %}
+        <p class="last-info" id="last-info"{{ state.lastText ? '' : ' hidden' }}>
+            Zuletzt bestätigt: <span id="last-at">{{ state.lastText }}</span> Uhr
+        </p>
 
         <p class="footer-note">
-            Ein Tipp am Tag genügt. Deine Kinder sehen dann, dass alles gut ist.
+            Ein Tipp am Morgen und einer am Abend. Deine Kinder sehen dann,
+            dass alles gut ist.
         </p>
     </main>
+
+    <script src="{{ asset('checkin.js') }}"></script>
 </body>
 </html>

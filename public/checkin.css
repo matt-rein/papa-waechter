@@ -14,6 +14,12 @@
     box-sizing: border-box;
 }
 
+/* Das Skript blendet die beiden Zustände (Knopf / Haken) per [hidden] um.
+   Ohne !important gewinnen weiter unten die display-Regeln der Foto-Ansicht. */
+[hidden] {
+    display: none !important;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -110,6 +116,14 @@ h1 {
     font-size: 1.2rem;
     color: var(--muted);
     margin: 0;
+}
+
+/* Wann der Knopf wiederkommt. Papa soll morgens und abends bestätigen –
+   ohne diesen Hinweis wüsste er nach dem Tippen nicht, dass noch einer folgt. */
+.next-info {
+    font-size: 1.05rem;
+    color: var(--muted);
+    margin: 14px 0 0;
 }
 
 .footer-note {
@@ -274,6 +288,12 @@ body.has-photo.confirmed .status .title {
 body.has-photo.confirmed .status .sub {
     color: rgba(255, 255, 255, 0.9);
     font-size: 1.05rem;
+}
+
+body.has-photo.confirmed .next-info {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.95rem;
+    margin-top: 10px;
 }
 
 /* Die Fußzeilen erklären das Prinzip – nach dem Tippen weiß Papa das schon. */

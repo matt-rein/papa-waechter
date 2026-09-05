@@ -10,6 +10,8 @@ parameters:
     app.display_timezone: '%env(APP_TIMEZONE)%'
     app.alert_threshold_hours: '%env(int:ALERT_THRESHOLD_HOURS)%'
     app.alert_reminder_hours: '%env(int:ALERT_REMINDER_HOURS)%'
+    # Gültigkeitsdauer einer Bestätigung auf Papas Seite (siehe CheckInWindow).
+    app.checkin_window_hours: '%env(int:CHECKIN_WINDOW_HOURS)%'
     app.mailer_from: '%env(MAILER_FROM)%'
     # Familienfotos für Papas Hintergrundbild.
     #
@@ -37,6 +39,7 @@ services:
             string $displayTimezone: '%app.display_timezone%'
             int $alertThresholdHours: '%app.alert_threshold_hours%'
             int $alertReminderHours: '%app.alert_reminder_hours%'
+            int $checkinWindowHours: '%app.checkin_window_hours%'
             string $mailerFrom: '%app.mailer_from%'
             string $photoDir: '%app.photo_dir%'
             string $photoCacheDir: '%app.photo_cache_dir%'

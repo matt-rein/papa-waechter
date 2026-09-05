@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\CheckInRepository;
 use App\Repository\WatcheeRepository;
+use App\Service\CheckInWindow;
 use App\Service\MonitoringStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +18,7 @@ class DashboardController extends AbstractController
         private readonly string $displayTimezone,
         private readonly int $alertThresholdHours,
         private readonly int $alertReminderHours,
+        private readonly CheckInWindow $checkinWindow,
     ) {
     }
 
@@ -40,6 +42,7 @@ class DashboardController extends AbstractController
             // Für die Bedienungsanleitung: die tatsächlich konfigurierten Fristen.
             'thresholdHours' => $this->alertThresholdHours,
             'reminderHours' => $this->alertReminderHours,
+            'windowHours' => $this->checkinWindow->hours(),
         ]);
     }
 }

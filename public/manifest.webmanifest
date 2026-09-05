@@ -1,7 +1,7 @@
 {
   "name": "Lebenszeichen",
   "short_name": "Lebenszeichen",
-  "description": "Täglich bestätigen, dass alles in Ordnung ist.",
+  "description": "Morgens und abends bestätigen, dass alles in Ordnung ist.",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f4f6f8",

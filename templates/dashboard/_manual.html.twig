@@ -1,6 +1,6 @@
 {#- Bedienungsanleitung für die Wächter. Bewusst fest im Template hinterlegt –
     sie beschreibt Abläufe, die sich nicht aus den Daten ergeben.
-    Erwartet: items, thresholdHours, reminderHours -#}
+    Erwartet: items, thresholdHours, reminderHours, windowHours -#}
 <details class="manual">
     <summary>
         <span class="manual-icon">📖</span>
@@ -62,9 +62,18 @@
                 </ol>
 
                 <p><strong>Und so benutzt Papa es:</strong> Symbol antippen, auf den großen grünen
-                    Knopf „Mir geht’s gut“ tippen, fertig. Einmal am Tag genügt. Er sieht danach
-                    einen Haken als Bestätigung, und dahinter liegt das Familienfoto des Tages.
-                    Die Seite öffnet sich im Vollbild, ohne Safari-Leiste.</p>
+                    Knopf „Mir geht’s gut“ tippen, fertig. Er sieht danach einen Haken als
+                    Bestätigung, und dahinter liegt das Familienfoto des Tages. Die Seite öffnet
+                    sich im Vollbild, ohne Safari-Leiste.</p>
+
+                <p class="hint">
+                    <strong>Morgens und abends.</strong> Nach {{ windowHours }} Stunden ist der
+                    grüne Knopf von selbst wieder da – auf dem Haken steht auch, ab wann. So kann
+                    Papa zweimal am Tag bestätigen; vergisst er einen der beiden, passiert nichts.
+                    Alarm gibt es erst nach {{ thresholdHours }} Stunden ganz ohne Lebenszeichen.
+                    Er muss dafür nichts neu laden: die App darf auf dem iPad offen liegen bleiben,
+                    die Seite schaltet selbst um, sobald er sie wieder ansieht.
+                </p>
 
                 <p class="hint">
                     <strong>Einmal gemeinsam testen.</strong> Er tippt das Symbol an und drückt den
@@ -186,7 +195,13 @@
                     benutzt hat.
                 </p>
                 <p class="hint">
-                    Die Seite aktualisiert sich nicht von selbst – zum Nachsehen einfach neu laden.
+                    Dieses Dashboard aktualisiert sich nicht von selbst – zum Nachsehen einfach neu
+                    laden. Papas Seite dagegen schon: sie holt sich ihren Stand, sobald er sie
+                    wieder vor Augen hat.
+                </p>
+                <p class="hint">
+                    Zwei Einträge am Tag sind der Normalfall, keine Doppelmeldung: Papa bestätigt
+                    morgens und abends. Für die Ampel zählt ohnehin nur der jüngste Eintrag.
                 </p>
             </div>
         </details>
@@ -219,6 +234,11 @@
             <summary>6. Wenn etwas nicht funktioniert</summary>
             <div class="topic-body">
                 <dl class="faq">
+                    <dt>Papa sieht den grünen Knopf nicht.</dt>
+                    <dd>Dann hat er innerhalb der letzten {{ windowHours }} Stunden schon bestätigt
+                        – statt des Knopfes steht der Haken da, mit der Uhrzeit, ab der es wieder
+                        losgeht. Das ist so gewollt; er muss nichts tun.</dd>
+
                     <dt>Papa tippt, aber hier kommt nichts an.</dt>
                     <dd>Meist war es nicht das Homescreen-Symbol, sondern ein alter Link im Browser.
                         Ihn das Symbol vom Home-Bildschirm benutzen lassen und den Verlauf oben prüfen.</dd>
