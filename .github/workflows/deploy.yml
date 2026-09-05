@@ -50,9 +50,9 @@ jobs:
         env:
           APP_ENV: prod
 
-      # Kein Asset-Build: das CSS liegt fertig in public/, JavaScript steht
-      # inline in den Templates. Für frische Assets im Browser sorgt
-      # APP_ASSET_VERSION (siehe unten).
+      # Kein Asset-Build: CSS und JavaScript liegen fertig in public/. Für
+      # frische Assets im Browser sorgt APP_ASSET_VERSION (siehe unten) –
+      # und Papas Seite lädt sich neu, sobald sie eine neue Version sieht.
 
       - name: Lint
         run: |

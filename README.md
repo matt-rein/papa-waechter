@@ -28,6 +28,18 @@ lokal ausgeliefert.
   iPad-Uhr nichts verschiebt. Die HTML-Seite selbst wird mit `no-store`
   ausgeliefert, damit beim Neustart der App nie ein alter Stand aus dem Cache
   kommt.
+- **Und sie holt sich neuen Code selbst.** Im Status steht der `APP_ASSET_VERSION`
+  des Deploys. Weicht er von dem ab, mit dem die offene Seite ausgeliefert wurde,
+  lädt sie sich einmal neu. Ohne das erreicht ein Deploy ein iPad nie, auf dem
+  die App seit Tagen offen liegt – der alte Code bliebe dort stehen, und wenn
+  der gerade keinen Knopf zeigt, entsteht eine Sackgasse: kein Knopf, kein
+  Tippen, kein Seitenaufbau, kein neuer Code. Gegen Endlosschleifen bremst
+  `sessionStorage` auf höchstens ein Neuladen alle fünf Minuten.
+
+> **Einmalig von Hand:** Geräte, auf denen noch eine Fassung *ohne*
+> `checkin.js` offen liegt, erreicht auch das nicht – die alte Seite hatte
+> überhaupt kein JavaScript. Dort die App einmal im App-Umschalter schließen
+> und neu öffnen. Danach aktualisiert sie sich für immer selbst.
 - **Wächter** melden sich am Dashboard an und sehen eine Status-Ampel
   (grün / gelb / rot) sowie den Verlauf aller Bestätigungen. Auf der Startseite
   steht außerdem eine aufklappbare **Bedienungsanleitung** (Homescreen-Symbol

@@ -11,6 +11,9 @@
    2. Kommt die App aus dem Hintergrund zurück, fragt sie zusätzlich den Server
       nach dem echten Stand (auch wegen des Fotos des Tages). Schlägt das fehl,
       bleibt es bei Weg 1.
+   3. Meldet der Server dabei eine neuere Version, lädt die Seite sich einmal
+      selbst neu. Ohne das erreicht ein Deploy ein iPad nie, auf dem die App
+      seit Tagen offen liegt – der alte Code bliebe dort für immer stehen.
 
    Gerechnet wird gegen die Serverzeit, nicht gegen die Uhr des iPads: eine
    falsch gestellte Geräteuhr darf den Knopf nicht zu früh oder gar nicht
@@ -36,6 +39,10 @@
     // Abstand zwischen Server- und Geräteuhr, in Millisekunden.
     var skew = state.now * 1000 - Date.now();
 
+    // Die Version, mit der diese Seite ausgeliefert wurde.
+    var loadedVersion = state.version;
+    var reloading = false;
+
     function render() {
         var confirmed = state.expiresAt !== null && (Date.now() + skew) < state.expiresAt * 1000;
 
@@ -50,6 +57,32 @@
         if (state.nextText) {
             nextAt.textContent = state.nextText;
         }
+    }
+
+    /* Neuer Code auf dem Server: einmal neu laden.
+
+       Mit Bremse, weil hier niemand zuschaut. Bliebe die Version nach dem
+       Neuladen wider Erwarten alt, drehte die Seite sonst endlos im Kreis –
+       auf einem Gerät, das den ganzen Tag am Ladekabel neben Papa liegt. */
+    function reloadForNewVersion() {
+        if (reloading) {
+            return;
+        }
+        reloading = true;
+
+        var now = Date.now();
+        try {
+            var last = parseInt(sessionStorage.getItem('lz-reload') || '0', 10);
+            if (now - last < 300000) {
+                return;
+            }
+            sessionStorage.setItem('lz-reload', String(now));
+        } catch (e) {
+            /* Kein sessionStorage (privater Modus): dann greift nur die
+               Sperre oben, und die gilt immerhin für diesen Seitenaufbau. */
+        }
+
+        location.reload();
     }
 
     function refresh() {
@@ -76,6 +109,10 @@
                 state = fresh;
                 skew = state.now * 1000 - Date.now();
                 render();
+
+                if (fresh.version && loadedVersion && fresh.version !== loadedVersion) {
+                    reloadForNewVersion();
+                }
             })
             .catch(function () {
                 /* Kein Netz: die lokale Uhr genügt, um den Knopf zurückzuholen. */

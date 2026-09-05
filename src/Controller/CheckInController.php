@@ -25,6 +25,7 @@ class CheckInController extends AbstractController
         private readonly string $displayTimezone,
         private readonly PhotoLibrary $photos,
         private readonly CheckInWindow $window,
+        private readonly string $assetVersion,
     ) {
     }
 
@@ -137,7 +138,8 @@ class CheckInController extends AbstractController
      *     expiresAt: ?int,
      *     lastText: ?string,
      *     nextText: ?string,
-     *     photoUrl: ?string
+     *     photoUrl: ?string,
+     *     version: string
      * }
      */
     private function state(Watchee $watchee, ?CheckIn $last, string $token): array
@@ -158,6 +160,10 @@ class CheckInController extends AbstractController
             'photoUrl' => $photo === null
                 ? null
                 : $this->generateUrl('app_checkin_photo', ['token' => $token, 'name' => $photo]),
+            // Stand des Deploys. Papas App bleibt auf dem iPad offen und käme
+            // sonst nie an neuen Code: sie kann sich nur selbst aktualisieren,
+            // wenn sie merkt, dass auf dem Server etwas Neueres liegt.
+            'version' => $this->assetVersion,
         ];
     }
 }
