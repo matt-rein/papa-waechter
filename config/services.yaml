@@ -13,6 +13,8 @@ parameters:
     # Gültigkeitsdauer einer Bestätigung auf Papas Seite (siehe CheckInWindow).
     app.checkin_window_hours: '%env(int:CHECKIN_WINDOW_HOURS)%'
     app.mailer_from: '%env(MAILER_FROM)%'
+    # Nur für die Anzeige in app:mail:test – das Passwort wird dort maskiert.
+    app.mailer_dsn: '%env(MAILER_DSN)%'
     # Familienfotos für Papas Hintergrundbild.
     #
     # Bewusst NICHT unter var/: dort wird bei Problemen gern mal aufgeräumt
@@ -41,6 +43,7 @@ services:
             int $alertReminderHours: '%app.alert_reminder_hours%'
             int $checkinWindowHours: '%app.checkin_window_hours%'
             string $mailerFrom: '%app.mailer_from%'
+            string $mailerDsn: '%app.mailer_dsn%'
             string $photoDir: '%app.photo_dir%'
             string $photoCacheDir: '%app.photo_cache_dir%'
             string $photoDirLabel: '%app.photo_dir_label%'

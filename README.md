@@ -53,6 +53,7 @@ lokal ausgeliefert.
 | `photos/` | die Familienbilder (nicht im Repo, nicht im Image) |
 | `templates/dashboard/_manual.html.twig` | Text der Bedienungsanleitung |
 | `src/Command/CheckAliveCommand.php` | die 24h-Prüfung (`app:check-alive`) |
+| `src/Command/MailTestCommand.php` | Testmail an eine Adresse (`app:mail:test`) |
 | `bin/cron-check-alive.sh` | Aufruf der Prüfung für klassische Cron-Dienste |
 | `src/Service/` | Check-in-Aufzeichnung, Statusberechnung, Mailversand |
 
@@ -290,6 +291,20 @@ Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
   `docker/cron-healthcheck.sh` schlägt Alarm, wenn sie älter als zwei Intervalle
   ist. So fällt auch ein Dienst auf, der zwar noch läuft, dessen Prüfung aber
   dauerhaft scheitert – `docker compose ps` zeigt ihn dann als `unhealthy`.
+- **Kommt bei einem Wächter keine Mail an?** Die Alarm-Mail geht als *eine*
+  Nachricht an alle Empfänger zugleich – entweder wird sie für alle angenommen
+  oder für keinen. Fehlt sie also nur bei einer Person, ging sie unterwegs bei
+  deren Anbieter verloren (Spam-Ordner, stille Ablehnung). Zum Nachstellen ohne
+  24 Stunden Wartezeit:
+
+  ```bash
+  php84 bin/console app:mail:test jemand@example.com
+  ```
+
+  Das schickt eine Testmail an genau diese eine Adresse, zeigt den benutzten
+  Versandweg (Passwort maskiert) und im Fehlerfall die Antwort des Mailservers
+  im Klartext. „Angenommen" heißt dabei noch nicht „zugestellt" – darüber
+  entscheidet der Anbieter des Empfängers.
 - **HTTPS ist Pflicht**, weil das geheime Token im Link steckt.
 - **Token vertraulich halten;** bei Bedarf mit `app:watchee:create` neu erzeugen.
 - **Passwort zurücksetzen:** `app:guardian:password [E-Mail] [--generate]` –
