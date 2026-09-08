@@ -364,3 +364,43 @@ h2 { font-size: 1.05rem; margin: 24px 0 10px; }
     margin-bottom: 8px;
 }
 .photo-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Protokoll der Lebenszeichen */
+.log-title { margin-top: 0; }
+.log-intro { margin: 0 0 16px; font-size: 0.95rem; }
+
+.log-filter {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+}
+.log-filter-label { color: var(--muted); font-size: 0.9rem; margin-right: 2px; }
+.log-count { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+
+.chip {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--blue); text-decoration: none; font-size: 0.9rem;
+}
+.chip:hover { background: var(--bg); }
+.chip.current { background: var(--blue); border-color: var(--blue); color: #fff; }
+.chip.disabled { color: var(--muted); background: var(--bg); }
+
+.log-table .gap { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.log-table .log-open td { background: #fafbfc; color: var(--muted); }
+
+/* Eine Lücke über der Schwelle ist der Grund für jede Alarm-Mail –
+   deshalb ist sie die einzige Zeile, die aus der Tabelle heraussticht. */
+.log-table .gap-overdue td { background: #fdecea; }
+.log-table .gap-overdue .gap { color: var(--red); font-weight: 600; }
+.gap-flag {
+    display: inline-block; margin-left: 6px; padding: 1px 8px;
+    border-radius: 999px; background: var(--red); color: #fff;
+    font-size: 0.75rem; font-weight: 600; vertical-align: 1px;
+}
+
+.pager {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-top: 16px;
+}
+.pager-state { color: var(--muted); font-size: 0.9rem; }
+.log-link { margin: 10px 0 0; font-size: 0.9rem; }

@@ -1,11 +1,12 @@
 {#- Kopfzeile mit Navigation. Nur für angemeldete Wächter sichtbar.
-    Erwartet optional: active ('dashboard'|'photos'|'guardians') -#}
+    Erwartet optional: active ('dashboard'|'log'|'photos'|'guardians') -#}
 {% set active = active|default('') %}
 <div class="topbar">
     <span class="brand">🟢 Papa-Wächter</span>
 
     <nav class="nav">
         <a href="{{ path('app_dashboard') }}" {{ active == 'dashboard' ? 'class="current"' : '' }}>Übersicht</a>
+        <a href="{{ path('app_checkin_log') }}" {{ active == 'log' ? 'class="current"' : '' }}>Protokoll</a>
         <a href="{{ path('app_photo_index') }}" {{ active == 'photos' ? 'class="current"' : '' }}>Fotos</a>
         <a href="{{ path('app_guardian_index') }}" {{ active == 'guardians' ? 'class="current"' : '' }}>Wächter</a>
     </nav>

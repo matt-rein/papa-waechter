@@ -1,0 +1,113 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Protokoll – Papa-Wächter{% endblock %}
+
+{% block body %}
+{{ include('_topbar.html.twig', {active: 'log'}) }}
+
+<div class="container">
+    {{ include('_flashes.html.twig') }}
+
+    {% if watchee is null %}
+        <div class="watchee-card">
+            <p>Es ist noch keine überwachte Person angelegt.</p>
+        </div>
+    {% else %}
+    <div class="watchee-card">
+        <h2 class="log-title">Eingegangene Lebenszeichen</h2>
+        <p class="muted log-intro">
+            Aufgezeichnet wird nur, was den Server erreicht hat. Entscheidend für
+            einen Alarm ist nicht die einzelne Bestätigung, sondern der
+            <strong>Abstand</strong> dazwischen: ab {{ thresholdHours }} Stunden
+            geht die Alarm-Mail raus.
+        </p>
+
+        {% if people|length > 1 %}
+            <div class="log-filter">
+                <span class="log-filter-label">Person</span>
+                {% for person in people %}
+                    <a class="chip {{ person.id == watchee.id ? 'current' : '' }}"
+                       href="{{ path('app_checkin_log', {person: person.id, tage: days}) }}">{{ person.name }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="log-filter">
+            <span class="log-filter-label">Zeitraum</span>
+            {% for range in ranges %}
+                <a class="chip {{ range == days ? 'current' : '' }}"
+                   href="{{ path('app_checkin_log', {person: watchee.id, tage: range}) }}">
+                    {{ range == 0 ? 'alle' : range ~ ' Tage' }}
+                </a>
+            {% endfor %}
+            <span class="log-count">
+                {{ total }} {{ total == 1 ? 'Eintrag' : 'Einträge' }}
+            </span>
+        </div>
+
+        <table class="history log-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Uhrzeit</th>
+                    <th>Abstand zur vorherigen</th>
+                    <th>Gerät</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    {% if row.entry is null %}
+                        {# Die Lücke, die gerade läuft – noch kein Eintrag, aber
+                           genau die Zahl, die über den nächsten Alarm entscheidet. #}
+                        <tr class="log-open {{ row.overdue ? 'gap-overdue' : '' }}">
+                            <td colspan="2"><em>jetzt – noch offen</em></td>
+                            <td class="gap">
+                                {{ row.gapHours|number_format(1, ',', '.') }} h
+                                {%- if row.overdue %} <span class="gap-flag">überfällig</span>{% endif %}
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    {% else %}
+                        <tr class="{{ row.overdue ? 'gap-overdue' : '' }}">
+                            <td>{{ row.entry.occurredAt|date('d.m.Y', timezone) }}</td>
+                            <td>{{ row.entry.occurredAt|date('H:i', timezone) }} Uhr</td>
+                            <td class="gap">
+                                {% if row.gapHours is null %}
+                                    <span class="muted">–</span>
+                                {% else %}
+                                    {{ row.gapHours|number_format(1, ',', '.') }} h
+                                    {%- if row.overdue %} <span class="gap-flag">Alarm</span>{% endif %}
+                                {% endif %}
+                            </td>
+                            <td>{{ row.device ?: '–' }}</td>
+                            <td class="muted">{{ row.entry.ipAddress ?: '–' }}</td>
+                        </tr>
+                    {% endif %}
+                {% else %}
+                    <tr><td colspan="5" class="empty">In diesem Zeitraum ist keine Bestätigung angekommen.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if pages > 1 %}
+            <nav class="pager" aria-label="Seiten">
+                {% if page > 1 %}
+                    <a class="chip" href="{{ path('app_checkin_log', {person: watchee.id, tage: days, seite: page - 1}) }}">← Neuere</a>
+                {% else %}
+                    <span class="chip disabled">← Neuere</span>
+                {% endif %}
+
+                <span class="pager-state">Seite {{ page }} von {{ pages }}</span>
+
+                {% if page < pages %}
+                    <a class="chip" href="{{ path('app_checkin_log', {person: watchee.id, tage: days, seite: page + 1}) }}">Ältere →</a>
+                {% else %}
+                    <span class="chip disabled">Ältere →</span>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

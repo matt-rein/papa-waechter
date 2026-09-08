@@ -55,6 +55,11 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <p class="log-link">
+                <a href="{{ path('app_checkin_log', {person: s.watchee.id}) }}">
+                    Vollständiges Protokoll mit den Abständen dazwischen →
+                </a>
+            </p>
         </div>
     {% else %}
         <div class="watchee-card">

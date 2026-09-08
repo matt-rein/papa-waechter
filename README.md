@@ -59,12 +59,13 @@ lokal ausgeliefert.
 | `src/Service/CheckInWindow.php` | wie lange eine Bestätigung „steht“ |
 | `public/checkin.js` | hält Papas Seite ohne Neuladen aktuell |
 | `src/Controller/DashboardController.php` | Dashboard (`/`) inkl. Bedienungsanleitung |
+| `src/Controller/CheckInLogController.php` | Protokoll der Lebenszeichen (`/protokoll`) |
 | `src/Controller/GuardianController.php` | Wächter-Verwaltung (`/waechter`) |
 | `src/Controller/PhotoController.php` | Foto-Verwaltung (`/fotos`) |
 | `src/Service/PhotoLibrary.php` | Ablage der Fotos + Auswahl des Tagesbildes |
 | `photos/` | die Familienbilder (nicht im Repo, nicht im Image) |
 | `templates/dashboard/_manual.html.twig` | Text der Bedienungsanleitung |
-| `src/Command/CheckAliveCommand.php` | die 24h-Prüfung (`app:check-alive`) |
+| `src/Command/CheckAliveCommand.php` | die Lebenszeichen-Prüfung (`app:check-alive`) |
 | `src/Command/MailTestCommand.php` | Testmail an eine Adresse (`app:mail:test`) |
 | `bin/cron-check-alive.sh` | Aufruf der Prüfung für klassische Cron-Dienste |
 | `src/Service/` | Check-in-Aufzeichnung, Statusberechnung, Mailversand |
@@ -237,6 +238,24 @@ docker compose -f compose.prod.yaml exec app php bin/console app:watchee:create
 Den Check-in-Link auf Papas iPad in Safari öffnen und über das Teilen-Menü
 **„Zum Home-Bildschirm"** hinzufügen. Der Link steht auch im Dashboard in der
 Bedienungsanleitung, mit „Kopieren"-Knopf.
+
+### Protokoll der Lebenszeichen
+
+**`/protokoll`** (Kopfzeile → „Protokoll“) listet alle eingegangenen
+Bestätigungen, seitenweise zu 50, mit Zeitraum-Filter (7 / 30 / 90 Tage oder
+alle).
+
+Die wichtigste Spalte ist **„Abstand zur vorherigen"**. Alarmiert wird nicht,
+weil eine Bestätigung fehlt, sondern weil zwischen zwei Bestätigungen mehr als
+`ALERT_THRESHOLD_HOURS` lagen – solche Lücken sind rot markiert und mit
+„Alarm" beschriftet. Die oberste Zeile zeigt die gerade laufende Lücke, also
+die Zahl, die über den nächsten Alarm entscheidet.
+
+Damit lässt sich nach einer Alarm-Mail die Frage beantworten, ob sie berechtigt
+war. Wichtig dabei: **aufgezeichnet wird nur der Erfolg.** Ein Tipp, der den
+Server nie erreicht hat (iPad kurz ohne Netz, iOS legt die App beim Wechsel
+schlafen), taucht nirgends auf – weder hier noch im Log. Eine Lücke, für die es
+keine Erklärung gibt, ist deshalb genau dieser Fall.
 
 ### Wächter verwalten
 
