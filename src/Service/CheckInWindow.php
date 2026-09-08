@@ -9,7 +9,7 @@ use App\Entity\CheckIn;
  * Knopf zeigt.
  *
  * Bewusst getrennt von der Alarmschwelle: alarmiert wird erst nach
- * ALERT_THRESHOLD_HOURS (24), der Knopf kommt aber schon nach
+ * ALERT_THRESHOLD_HOURS (26), der Knopf kommt aber schon nach
  * CHECKIN_WINDOW_HOURS (6) zurück. So kann Papa morgens und abends
  * bestätigen, ohne dass ein vergessener Abend gleich die Wächter aufschreckt.
  */

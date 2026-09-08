@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Validation;
  *
  * Der Grund für dieses Kommando: die Alarm-Mail geht als *eine* Nachricht an
  * alle Wächter zugleich. Bleibt sie bei genau einem Empfänger aus, lässt sich
- * das sonst nur prüfen, indem man 24 Stunden auf einen echten Alarm wartet.
+ * das sonst nur prüfen, indem man einen Tag auf einen echten Alarm wartet.
  * Hier geht die Mail an genau eine Adresse – und im Fehlerfall steht die
  * Antwort des Mailservers im Klartext auf dem Schirm.
  */

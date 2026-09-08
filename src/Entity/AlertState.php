@@ -24,8 +24,8 @@ class AlertState
     private ?Watchee $watchee = null;
 
     /**
-     * true, solange die 24h-Schwelle überschritten ist und noch kein neues
-     * Lebenszeichen kam.
+     * true, solange die Alarmschwelle (ALERT_THRESHOLD_HOURS) überschritten
+     * ist und noch kein neues Lebenszeichen kam.
      */
     #[ORM\Column(options: ['default' => false])]
     private bool $active = false;

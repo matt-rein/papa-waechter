@@ -2,7 +2,7 @@
 
 Ein „Lebenszeichen"-System (Dead-Man's-Switch): Papa bestätigt morgens und abends
 per Tipp auf seinem iPad, dass alles in Ordnung ist. Bleibt die Bestätigung länger
-als 24 Stunden aus, werden die Wächter (z. B. Matthias und Schwester) automatisch
+als 26 Stunden aus, werden die Wächter (z. B. Matthias und Schwester) automatisch
 per E-Mail alarmiert.
 
 Gebaut mit Symfony 7, SQLite und FrankenPHP. **Ohne CDN** – alle Assets werden
@@ -17,8 +17,11 @@ lokal ausgeliefert.
 - **Zwei getrennte Fristen.** Nach einer Bestätigung zeigt die Seite den Haken und
   nennt die Uhrzeit, ab der der Knopf wieder da ist – nach `CHECKIN_WINDOW_HOURS`
   (Standard 6). So passt „morgens und abends“ hinein. **Alarmiert** wird davon
-  unabhängig erst nach `ALERT_THRESHOLD_HOURS` (Standard 24): ein vergessener
-  Abend weckt niemanden.
+  unabhängig erst nach `ALERT_THRESHOLD_HOURS` (Standard 26): ein vergessener
+  Abend weckt niemanden. Die Schwelle ist bewusst *keine* glatten 24 Stunden –
+  sonst fällt die Frist jeden Tag auf genau die Uhrzeit der letzten
+  Bestätigung, und wer morgens einmal eine Stunde später dran ist, löst schon
+  einen Fehlalarm aus.
 - **Die Seite hält sich selbst aktuell.** Papas App bleibt auf dem iPad im
   Hintergrund offen, oft tagelang. `public/checkin.js` schaltet deshalb beim
   Ablauf des Fensters von selbst auf den Knopf um (eigene Uhr, geht auch ohne
@@ -87,7 +90,7 @@ Demo-Zugang nach dem Laden der Fixtures:
 - **Dashboard-Login:** `mre@reinhardt-online.de` / Passwort `changeme`
   (zweiter Wächter: `schwester@example.com` / `changeme`)
 
-Die 24h-Prüfung manuell auslösen:
+Die Lebenszeichen-Prüfung manuell auslösen:
 
 ```bash
 php bin/console app:check-alive            # echt (versendet ggf. Mails)
@@ -326,7 +329,7 @@ Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
   Nachricht an alle Empfänger zugleich – entweder wird sie für alle angenommen
   oder für keinen. Fehlt sie also nur bei einer Person, ging sie unterwegs bei
   deren Anbieter verloren (Spam-Ordner, stille Ablehnung). Zum Nachstellen ohne
-  24 Stunden Wartezeit:
+  einen Tag Wartezeit:
 
   ```bash
   php84 bin/console app:mail:test jemand@example.com
@@ -351,7 +354,7 @@ Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
 |---|---|
 | `MAILER_DSN` | Mailversand (SMTP, Gmail, Brevo …) |
 | `MAILER_FROM` | Absender der Alarm-Mails |
-| `ALERT_THRESHOLD_HOURS` | Stunden ohne Lebenszeichen bis zum Alarm (Standard 24) |
+| `ALERT_THRESHOLD_HOURS` | Stunden ohne Lebenszeichen bis zum Alarm (Standard 26) |
 | `ALERT_REMINDER_HOURS` | Erinnerungsintervall, solange der Alarm aktiv ist (Standard 12) |
 | `CHECKIN_WINDOW_HOURS` | Stunden, bis Papas Seite wieder den grünen Knopf zeigt (Standard 6) |
 | `APP_TIMEZONE` | Anzeige-Zeitzone (Standard `Europe/Berlin`) |
