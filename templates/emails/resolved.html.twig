@@ -6,11 +6,17 @@
 
         <p>
             {{ watchee.name }} hat wieder ein Lebenszeichen gegeben
-            {% if checkedInAt %}
-                (<strong>{{ checkedInAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr</strong>)
-            {% endif %}.
+            (<strong>{{ checkIn.occurredAt|date('d.m.Y \\u\\m H:i', timezone) }} Uhr</strong>).
             Alles wieder in Ordnung.
         </p>
+
+        {% if checkIn.late %}
+            <p style="color:#66707e;">
+                Das iPad hatte beim Tippen keine Verbindung. Das Lebenszeichen
+                wurde nachgeschickt und kam erst um
+                {{ checkIn.receivedAt|date('H:i', timezone) }} Uhr an.
+            </p>
+        {% endif %}
 
         <p style="color:#66707e; font-size:0.9em;">
             Diese Nachricht wurde automatisch vom Papa-Wächter-System erstellt.

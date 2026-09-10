@@ -33,7 +33,14 @@
         <div class="status done" id="view-done"{{ state.confirmed ? '' : ' hidden' }}>
             <div class="big-check">✓</div>
             <p class="title">Danke, {{ watchee.name }}!</p>
-            <p class="sub">Dein Lebenszeichen ist angekommen.</p>
+            <p class="sub" id="done-sent">Dein Lebenszeichen ist angekommen.</p>
+            {# Nur zu sehen, solange ein Tipp noch unterwegs ist – checkin.js
+               schaltet um und schickt ihn nach, sobald wieder Netz da ist. #}
+            <p class="sub" id="done-sending" hidden>Dein Lebenszeichen wird gesendet&nbsp;…</p>
+            <p class="sub" id="done-offline" hidden>
+                Das iPad hat gerade keine Verbindung. Dein Lebenszeichen wird
+                nachgeschickt, sobald sie wieder da ist – du musst nichts tun.
+            </p>
             <p class="next-info">
                 Der grüne Knopf ist ab <strong id="next-at">{{ state.nextText }}</strong> Uhr
                 wieder da.
@@ -44,11 +51,15 @@
             <h1>Hallo {{ watchee.name }}!</h1>
             <p class="greeting">Alles in Ordnung?</p>
 
-            <form class="confirm-form" method="post" action="{{ path('app_checkin_confirm', {token: token}) }}">
+            {# Mit JavaScript schickt checkin.js den Tipp selbst (und notfalls
+               später nach); das Formular ist der Weg ohne JavaScript. #}
+            <form class="confirm-form" id="confirm-form" method="post" action="{{ path('app_checkin_confirm', {token: token}) }}">
                 {# Füllt checkin.js: der User-Agent verrät nicht, ob hier ein
                    iPad oder ein Mac tippt – Apple sendet für beide dasselbe.
                    Bleibt leer, wenn kein JavaScript läuft. #}
                 <input type="hidden" name="geraet" id="device-hint" value="">
+                {# Wann der Server diese Seite erzeugt hat – fürs Zugriffs-Log. #}
+                <input type="hidden" name="stand" value="{{ state.now }}">
                 <button type="submit" class="confirm-btn">
                     <span class="check">✓</span>
                     Mir geht&rsquo;s gut

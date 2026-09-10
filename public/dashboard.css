@@ -398,6 +398,9 @@ h2 { font-size: 1.05rem; margin: 24px 0 10px; }
     font-size: 0.75rem; font-weight: 600; vertical-align: 1px;
 }
 
+/* Tipp ohne Verbindung, später nachgeschickt: Uhrzeit = Tippen, hier die Ankunft. */
+.late-note { display: block; font-size: 0.8rem; color: var(--muted); }
+
 .pager {
     display: flex; align-items: center; justify-content: center; gap: 14px;
     margin-top: 16px;

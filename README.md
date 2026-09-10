@@ -43,6 +43,18 @@ lokal ausgeliefert.
 > `checkin.js` offen liegt, erreicht auch das nicht – die alte Seite hatte
 > überhaupt kein JavaScript. Dort die App einmal im App-Umschalter schließen
 > und neu öffnen. Danach aktualisiert sie sich für immer selbst.
+- **Kein Tipp geht verloren, nur weil gerade das Netz fehlt.** `checkin.js`
+  schickt den Tipp per `fetch` und hält ihn in `localStorage` fest, bis der
+  Server ihn bestätigt hat. Solange zeigt die Seite den Haken mit dem Hinweis
+  „wird nachgeschickt“ und versucht es immer wieder: wenn das Netz
+  zurückkommt, wenn die App aus dem Hintergrund kommt, sonst alle 30 Sekunden
+  – auch nach einem Neustart des iPads. Gespeichert wird die Uhrzeit des
+  *Tippens*, nicht die der Ankunft. Die rechnet der Server aus dem
+  mitgeschickten Abstand zurück („vor 52 Minuten getippt“), eine falsch
+  gestellte iPad-Uhr verschiebt also nichts. Jeder Tipp trägt eine Kennung,
+  kommt er doppelt an, wird er einmal gespeichert. Tipps, die älter als
+  sieben Tage sind, verfallen. Einen laufenden Alarm beendet ein
+  nachgemeldeter Tipp nur, wenn er jünger als die Alarmschwelle ist.
 - **Wächter** melden sich am Dashboard an und sehen eine Status-Ampel
   (grün / gelb / rot) sowie den Verlauf aller Bestätigungen. Auf der Startseite
   steht außerdem eine aufklappbare **Bedienungsanleitung** (Homescreen-Symbol
@@ -60,7 +72,8 @@ lokal ausgeliefert.
 | `src/Entity/` | `Guardian`, `Watchee` (Papa), `CheckIn`, `AlertState` |
 | `src/Controller/CheckInController.php` | Papas Seite (`/checkin/{token}`) + Status als JSON |
 | `src/Service/CheckInWindow.php` | wie lange eine Bestätigung „steht“ |
-| `public/checkin.js` | hält Papas Seite ohne Neuladen aktuell |
+| `public/checkin.js` | hält Papas Seite ohne Neuladen aktuell, schickt Tipps notfalls nach |
+| `src/EventSubscriber/CheckInAccessLogSubscriber.php` | Zugriffs-Log von Papas Seite (`var/log/checkin.log`) |
 | `src/Controller/DashboardController.php` | Dashboard (`/`) inkl. Bedienungsanleitung |
 | `src/Controller/CheckInLogController.php` | Protokoll der Lebenszeichen (`/protokoll`) |
 | `src/Controller/GuardianController.php` | Wächter-Verwaltung (`/waechter`) |
@@ -278,10 +291,33 @@ weil eine Bestätigung fehlt, sondern weil zwischen zwei Bestätigungen mehr als
 die Zahl, die über den nächsten Alarm entscheidet.
 
 Damit lässt sich nach einer Alarm-Mail die Frage beantworten, ob sie berechtigt
-war. Wichtig dabei: **aufgezeichnet wird nur der Erfolg.** Ein Tipp, der den
-Server nie erreicht hat (iPad kurz ohne Netz, iOS legt die App beim Wechsel
-schlafen), taucht nirgends auf – weder hier noch im Log. Eine Lücke, für die es
-keine Erklärung gibt, ist deshalb genau dieser Fall.
+war. Ein Tipp ohne Verbindung wird nachgeschickt, sobald das iPad wieder Netz
+hat. Er steht dann mit der Uhrzeit des Tippens im Protokoll und trägt den
+Hinweis „nachgemeldet, kam … an“. Eine Lücke, die trotzdem bleibt, klärt das
+Zugriffs-Log.
+
+### Zugriffs-Log von Papas Seite
+
+Jeder Seitenaufruf, jeder Statusabruf und jeder Tipp auf den Knopf landet als
+eine Zeile in **`var/log/checkin.log`** auf dem Server – auch dann, wenn beim
+Speichern etwas schiefging. Ab 2 MB wird die Datei zu `checkin.log.1`
+verschoben. Das geheime Token steht nicht darin.
+
+```
+2026-09-10 14:05:12 | POST knopf  | 200 |   41 ms | Seite von 14:02:11 | touch=5;standalone=1 | gespeichert (#11) | 2003:fb:… | "Mozilla/5.0 …"
+```
+
+| Spalte | Bedeutung |
+|---|---|
+| `seite` / `status` / `knopf` | Seite geladen / Seite fragt den Stand ab / Tipp auf den Knopf |
+| Statuscode, Dauer | 200 bzw. 302 ist gut, alles ab 400 ein Fehler |
+| `Seite von …` | wann die Seite zuletzt vom Server gehört hat. Liegt das weit zurück, zeigte das iPad einen alten Stand |
+| Gerät | `touch=5;standalone=1` ist Papas iPad vom Homescreen |
+| Ergebnis | `gespeichert`, `nachgemeldet … vorher`, `schon gespeichert` (Wiederholung), `verworfen` oder `Fehler: …` |
+
+Die wichtigste Frage beantwortet es sofort: **Fehlt ein Tipp im Protokoll und
+steht hier auch keine `knopf`-Zeile, hat er den Server nie erreicht.** Dann
+schickt ihn die Seite nach, sobald sie wieder Netz hat.
 
 ### Wächter verwalten
 

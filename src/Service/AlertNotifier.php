@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\CheckIn;
 use App\Entity\Watchee;
 use App\Repository\GuardianRepository;
 use Psr\Log\LoggerInterface;
@@ -48,14 +49,14 @@ class AlertNotifier
     /**
      * Entwarnung, sobald sich die Person wieder gemeldet hat.
      */
-    public function notifyResolved(Watchee $watchee, ?\DateTimeImmutable $checkedInAt): int
+    public function notifyResolved(Watchee $watchee, CheckIn $checkIn): int
     {
         return $this->send(
             'emails/resolved.html.twig',
             \sprintf('Entwarnung: %s hat sich wieder gemeldet', $watchee->getName()),
             [
                 'watchee' => $watchee,
-                'checkedInAt' => $checkedInAt,
+                'checkIn' => $checkIn,
                 'timezone' => $this->displayTimezone,
             ]
         );

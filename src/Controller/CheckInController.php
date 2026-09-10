@@ -4,11 +4,13 @@ namespace App\Controller;
 
 use App\Entity\CheckIn;
 use App\Entity\Watchee;
+use App\EventSubscriber\CheckInAccessLogSubscriber;
 use App\Repository\CheckInRepository;
 use App\Repository\WatcheeRepository;
 use App\Service\CheckInRecorder;
 use App\Service\CheckInWindow;
 use App\Service\PhotoLibrary;
+use App\Service\RecordedCheckIn;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -100,11 +102,20 @@ class CheckInController extends AbstractController
         return PhotoController::fileResponse($path);
     }
 
+    /**
+     * Der Tipp auf den grünen Knopf.
+     *
+     * Zwei Wege: checkin.js schickt ihn per fetch und will den neuen Stand als
+     * JSON zurück – nur so erfährt die Seite, dass er wirklich angekommen ist,
+     * und kann ihn sonst später nachmelden. Ohne JavaScript kommt ein
+     * gewöhnliches Formular, dann wie immer Redirect-after-POST.
+     */
     #[Route('/checkin/{token}', name: 'app_checkin_confirm', methods: ['POST'])]
     public function confirm(
         string $token,
         Request $request,
         WatcheeRepository $watchees,
+        CheckInRepository $checkIns,
         CheckInRecorder $recorder,
     ): Response {
         $watchee = $watchees->findOneByToken($token);
@@ -112,17 +123,86 @@ class CheckInController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $recorder->record(
+        $wantsJson = \in_array('application/json', $request->getAcceptableContentTypes(), true);
+
+        // Wie lange der Tipp zurückliegt – gemessen auf dem iPad als Abstand,
+        // nicht als Uhrzeit, damit eine falsch gestellte Geräteuhr nichts
+        // verschiebt. 0 bei einem frischen Tipp und ohne JavaScript.
+        $delaySeconds = intdiv(self::digits($request->request->getString('vor_ms')), 1000);
+
+        if ($delaySeconds > CheckInRecorder::MAX_DELAY_SECONDS) {
+            $request->attributes->set(CheckInAccessLogSubscriber::DETAIL, \sprintf(
+                'verworfen: getippt vor %s, das ist zu lange her',
+                CheckInAccessLogSubscriber::duration($delaySeconds),
+            ));
+
+            // 422 heißt für checkin.js: nicht noch einmal versuchen.
+            return new JsonResponse(['error' => 'Tipp zu alt'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $result = $recorder->record(
             $watchee,
             $request->getClientIp(),
             $request->headers->get('User-Agent'),
             // Was der Browser über sich meldet; leer, wenn kein JavaScript lief.
             $request->request->getString('geraet') ?: null,
+            self::tapId($request->request->getString('tap')),
+            $delaySeconds,
         );
+
+        $request->attributes->set(CheckInAccessLogSubscriber::DETAIL, $this->describe($result, $watchee));
+
+        if ($wantsJson) {
+            $response = new JsonResponse($this->state($watchee, $checkIns->findLatestFor($watchee), $token));
+            $response->headers->set('Cache-Control', 'no-store, private');
+
+            return $response;
+        }
 
         // Redirect-after-POST: verhindert versehentliches erneutes Absenden
         // beim Neuladen der Seite.
         return $this->redirectToRoute('app_checkin_show', ['token' => $token]);
+    }
+
+    /**
+     * Die Zeile fürs Zugriffs-Log: was mit dem Tipp passiert ist.
+     */
+    private function describe(RecordedCheckIn $result, Watchee $watchee): string
+    {
+        $checkIn = $result->checkIn;
+
+        if ($result->duplicate) {
+            return \sprintf('schon gespeichert (#%d), derselbe Tipp noch einmal geschickt', $checkIn->getId());
+        }
+
+        $text = \sprintf('gespeichert (#%d)', $checkIn->getId());
+        if ($checkIn->isLate()) {
+            $tz = new \DateTimeZone($watchee->getTimezone() ?: $this->displayTimezone);
+            $text = \sprintf(
+                'nachgemeldet (#%d), getippt um %s, also %s vorher',
+                $checkIn->getId(),
+                $checkIn->getOccurredAt()->setTimezone($tz)->format('H:i:s'),
+                CheckInAccessLogSubscriber::duration((int) $checkIn->getDelaySeconds()),
+            );
+        }
+
+        return $result->resolvedAlert ? $text.', Alarm beendet' : $text;
+    }
+
+    /**
+     * Eine Zahl aus einem Formularfeld, 0 bei allem anderen.
+     */
+    private static function digits(string $value): int
+    {
+        return $value !== '' && \strlen($value) <= 15 && ctype_digit($value) ? (int) $value : 0;
+    }
+
+    /**
+     * Die Kennung des Tipps, wie checkin.js sie vergibt (UUID oder Ersatz).
+     */
+    private static function tapId(string $value): ?string
+    {
+        return preg_match('/^[A-Za-z0-9-]{8,64}$/', $value) === 1 ? $value : null;
     }
 
     /**
@@ -138,6 +218,7 @@ class CheckInController extends AbstractController
      *     confirmed: bool,
      *     now: int,
      *     expiresAt: ?int,
+     *     windowHours: int,
      *     lastText: ?string,
      *     nextText: ?string,
      *     photoUrl: ?string,
@@ -157,6 +238,9 @@ class CheckInController extends AbstractController
             'confirmed' => $this->window->isConfirmed($last, $now),
             'now' => $now->getTimestamp(),
             'expiresAt' => $expiresAt?->getTimestamp(),
+            // Braucht die Seite für einen Tipp, der noch unterwegs ist: auch
+            // der hält den Knopf so lange weg wie ein angekommener.
+            'windowHours' => $this->window->hours(),
             'lastText' => $last?->getOccurredAt()->setTimezone($tz)->format('d.m.Y \u\m H:i'),
             'nextText' => $expiresAt?->setTimezone($tz)->format('H:i'),
             'photoUrl' => $photo === null

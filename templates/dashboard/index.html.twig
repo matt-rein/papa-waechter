@@ -47,7 +47,12 @@
                     {% for c in item.recent %}
                         <tr>
                             <td>{{ c.occurredAt|date('d.m.Y', timezone) }}</td>
-                            <td>{{ c.occurredAt|date('H:i', timezone) }} Uhr</td>
+                            <td>
+                                {{ c.occurredAt|date('H:i', timezone) }} Uhr
+                                {%- if c.late %}
+                                    <span class="late-note">nachgemeldet, kam {{ c.receivedAt|date('d.m. \\u\\m H:i', timezone) }} an</span>
+                                {% endif %}
+                            </td>
                             <td>{{ c.userAgent ? (c.userAgent|slice(0, 40)) : '–' }}</td>
                         </tr>
                     {% else %}

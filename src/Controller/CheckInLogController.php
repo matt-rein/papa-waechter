@@ -21,9 +21,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * *Abstände* zwischen ihnen. Alarmiert wird nicht, weil eine Bestätigung
  * fehlt, sondern weil zwischen zwei Bestätigungen mehr als die Schwelle lag.
  *
- * Gespeichert wird ausschließlich der Erfolg: ein Tipp, der den Server nie
- * erreicht hat (iPad kurz ohne Netz), taucht hier nicht auf. Eine Lücke, die
- * niemand erklären kann, ist deshalb genau dieser Fall.
+ * Hatte das iPad beim Tippen kein Netz, schickt die Seite den Tipp später nach;
+ * er steht dann mit der Uhrzeit des Tippens hier, markiert als nachgemeldet.
+ * Ob ein Tipp überhaupt beim Server ankam, steht in var/log/checkin.log.
  */
 #[IsGranted('ROLE_USER')]
 #[Route('/protokoll')]

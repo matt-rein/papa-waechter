@@ -16,10 +16,12 @@
     <div class="watchee-card">
         <h2 class="log-title">Eingegangene Lebenszeichen</h2>
         <p class="muted log-intro">
-            Aufgezeichnet wird nur, was den Server erreicht hat. Entscheidend für
-            einen Alarm ist nicht die einzelne Bestätigung, sondern der
-            <strong>Abstand</strong> dazwischen: ab {{ thresholdHours }} Stunden
-            geht die Alarm-Mail raus.
+            Hatte das iPad beim Tippen keine Verbindung, schickt es die
+            Bestätigung nach, sobald sie wieder da ist. Sie steht dann mit der
+            Uhrzeit des Tippens hier und ist als „nachgemeldet“ markiert.
+            Entscheidend für einen Alarm ist nicht die einzelne Bestätigung,
+            sondern der <strong>Abstand</strong> dazwischen: ab
+            {{ thresholdHours }} Stunden geht die Alarm-Mail raus.
         </p>
 
         {% if people|length > 1 %}
@@ -71,7 +73,13 @@
                     {% else %}
                         <tr class="{{ row.overdue ? 'gap-overdue' : '' }}">
                             <td>{{ row.entry.occurredAt|date('d.m.Y', timezone) }}</td>
-                            <td>{{ row.entry.occurredAt|date('H:i', timezone) }} Uhr</td>
+                            <td>
+                                {{ row.entry.occurredAt|date('H:i', timezone) }} Uhr
+                                {%- if row.entry.late %}
+                                    {# Die Uhrzeit ist die des Tippens; angekommen ist er später. #}
+                                    <span class="late-note">nachgemeldet, kam {{ row.entry.receivedAt|date('d.m. \\u\\m H:i', timezone) }} an</span>
+                                {% endif %}
+                            </td>
                             <td class="gap">
                                 {% if row.gapHours is null %}
                                     <span class="muted">–</span>

@@ -5,7 +5,7 @@
    dann unverändert den Haken von vorgestern – und Papa sähe den grünen Knopf
    gar nicht mehr, den er antippen soll.
 
-   Zwei Wege, bewusst unabhängig voneinander:
+   Mehrere Wege, bewusst unabhängig voneinander:
    1. Eine Uhr im Browser schaltet zum Ablauf des Bestätigungs-Fensters selbst
       auf den Knopf um. Das klappt auch ohne Netz.
    2. Kommt die App aus dem Hintergrund zurück, fragt sie zusätzlich den Server
@@ -14,6 +14,9 @@
    3. Meldet der Server dabei eine neuere Version, lädt die Seite sich einmal
       selbst neu. Ohne das erreicht ein Deploy ein iPad nie, auf dem die App
       seit Tagen offen liegt – der alte Code bliebe dort für immer stehen.
+   4. Ein Tipp auf den Knopf gilt erst als erledigt, wenn der Server ihn
+      bestätigt hat. Bis dahin merkt sich die Seite ihn und schickt ihn nach,
+      sobald wieder Netz da ist – auch nach einem Neustart des iPads.
 
    Gerechnet wird gegen die Serverzeit, nicht gegen die Uhr des iPads: eine
    falsch gestellte Geräteuhr darf den Knopf nicht zu früh oder gar nicht
@@ -27,6 +30,10 @@
     var lastInfo = document.getElementById('last-info');
     var lastAt = document.getElementById('last-at');
     var nextAt = document.getElementById('next-at');
+    var doneSent = document.getElementById('done-sent');
+    var doneSending = document.getElementById('done-sending');
+    var doneOffline = document.getElementById('done-offline');
+    var form = document.getElementById('confirm-form');
     var statusUrl = body.getAttribute('data-status-url');
 
     /* Welches Gerät hier tippt.
@@ -39,10 +46,12 @@
 
        Mitgeschickt werden die Messwerte, nicht die Deutung: was sie bedeuten,
        entscheidet der Server, und das lässt sich später ändern. */
+    var deviceHint = 'touch=' + (navigator.maxTouchPoints || 0) +
+        ';standalone=' + (navigator.standalone === true ? '1' : '0');
+
     var hintField = document.getElementById('device-hint');
     if (hintField) {
-        hintField.value = 'touch=' + (navigator.maxTouchPoints || 0) +
-            ';standalone=' + (navigator.standalone === true ? '1' : '0');
+        hintField.value = deviceHint;
     }
 
     var state;
@@ -59,18 +68,116 @@
     var loadedVersion = state.version;
     var reloading = false;
 
+    /* Tipps, die der Server noch nicht bestätigt hat.
+
+       Sie stehen in localStorage, das übersteht auch einen Neustart des iPads.
+       Mitgeschickt wird nicht die Uhrzeit des Tippens, sondern wie lange es
+       her ist; den Zeitpunkt rechnet der Server gegen seine eigene Uhr zurück.
+       So verschiebt eine falsch gestellte iPad-Uhr nichts – den Abstand misst
+       auch eine falsche Uhr richtig.
+
+       Jeder Tipp hat eine eigene Kennung. Kam er an, aber die Antwort ging
+       unterwegs verloren, schickt die Seite ihn erneut – und der Server
+       erkennt ihn wieder, statt ihn doppelt zu speichern. */
+    var QUEUE_KEY = 'lz-offen';
+    // Muss zu CheckInRecorder::MAX_DELAY_SECONDS passen: ältere nimmt der Server nicht an.
+    var MAX_AGE = 7 * 24 * 3600 * 1000;
+    var RETRY_AFTER = 30000;
+    var SEND_TIMEOUT = 20000;
+
+    var queue = loadQueue();
+    var sending = false;
+    var failed = false;
+    var lastAttempt = 0;
+
+    function loadQueue() {
+        var list;
+        try {
+            list = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+        } catch (e) {
+            list = [];
+        }
+        if (!Array.isArray(list)) {
+            return [];
+        }
+
+        var now = Date.now();
+        return list.filter(function (tap) {
+            return tap && typeof tap.id === 'string' && typeof tap.at === 'number' && now - tap.at < MAX_AGE;
+        });
+    }
+
+    function saveQueue() {
+        try {
+            localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+        } catch (e) {
+            /* Ohne localStorage bleibt der Tipp nur gemerkt, solange die
+               Seite offen ist. Besser als gar nicht. */
+        }
+    }
+
+    function forget(id) {
+        queue = queue.filter(function (tap) {
+            return tap.id !== id;
+        });
+        saveQueue();
+    }
+
+    function newTapId() {
+        if (window.crypto && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        return 't' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+    }
+
+    // Nur eine Antwort mit unserem Zustand zählt als "angekommen". Ein WLAN
+    // mit Anmeldeseite (Hotel, Praxis) antwortet auch mit 200 – bei uns ist
+    // der Tipp dann aber nie gelandet.
+    function isState(value) {
+        return value !== null && typeof value === 'object' &&
+            typeof value.now === 'number' && 'expiresAt' in value;
+    }
+
+    function show(element, visible) {
+        if (element) {
+            element.hidden = !visible;
+        }
+    }
+
+    function pad(n) {
+        return (n < 10 ? '0' : '') + n;
+    }
+
     function render() {
-        var confirmed = state.expiresAt !== null && (Date.now() + skew) < state.expiresAt * 1000;
+        var now = Date.now();
+        var serverConfirmed = state.expiresAt !== null && (now + skew) < state.expiresAt * 1000;
+
+        // Ein Tipp, der noch unterwegs ist, zählt auf dem iPad schon: Papa hat
+        // seinen Teil getan, der Knopf bleibt so lange weg wie nach einem
+        // angekommenen. Gerechnet mit der Geräteuhr – ohne Netz gibt es keine andere.
+        var newest = queue.length ? queue[queue.length - 1].at : null;
+        var localUntil = newest === null ? null : newest + (state.windowHours || 0) * 3600000;
+        var localConfirmed = localUntil !== null && now < localUntil;
+
+        var confirmed = serverConfirmed || localConfirmed;
 
         viewDone.hidden = !confirmed;
         viewAsk.hidden = confirmed;
         body.classList.toggle('confirmed', confirmed);
 
+        var waiting = queue.length > 0;
+        show(doneSent, !waiting);
+        show(doneSending, waiting && !failed);
+        show(doneOffline, waiting && failed);
+
         lastInfo.hidden = !state.lastText;
         if (state.lastText) {
             lastAt.textContent = state.lastText;
         }
-        if (state.nextText) {
+        if (localConfirmed && !serverConfirmed) {
+            var until = new Date(localUntil);
+            nextAt.textContent = pad(until.getHours()) + ':' + pad(until.getMinutes());
+        } else if (state.nextText) {
             nextAt.textContent = state.nextText;
         }
     }
@@ -101,44 +208,146 @@
         location.reload();
     }
 
+    // Neuer Stand vom Server – aus dem Statusabruf oder als Antwort auf einen Tipp.
+    function apply(fresh) {
+        // Das Foto wechselt um Mitternacht – auch das bekäme eine seit
+        // Tagen offene Seite sonst nie mit.
+        var photo = document.getElementById('bg-photo');
+        if (photo && fresh.photoUrl && fresh.photoUrl !== photo.getAttribute('src')) {
+            photo.setAttribute('src', fresh.photoUrl);
+        }
+
+        state = fresh;
+        skew = state.now * 1000 - Date.now();
+        render();
+
+        if (fresh.version && loadedVersion && fresh.version !== loadedVersion) {
+            reloadForNewVersion();
+        }
+    }
+
     function refresh() {
         if (!statusUrl) {
             return;
         }
 
-        fetch(statusUrl, { cache: 'no-store', credentials: 'same-origin' })
+        // stand und geraet liest nur das Zugriffs-Log auf dem Server.
+        var url = statusUrl + '?stand=' + encodeURIComponent(state.now) +
+            '&geraet=' + encodeURIComponent(deviceHint);
+
+        fetch(url, { cache: 'no-store', credentials: 'same-origin' })
             .then(function (response) {
                 return response.ok ? response.json() : null;
             })
             .then(function (fresh) {
-                if (!fresh) {
+                if (!isState(fresh)) {
                     return;
                 }
-
-                // Das Foto wechselt um Mitternacht – auch das bekäme eine seit
-                // Tagen offene Seite sonst nie mit.
-                var photo = document.getElementById('bg-photo');
-                if (photo && fresh.photoUrl && fresh.photoUrl !== photo.getAttribute('src')) {
-                    photo.setAttribute('src', fresh.photoUrl);
-                }
-
-                state = fresh;
-                skew = state.now * 1000 - Date.now();
-                render();
-
-                if (fresh.version && loadedVersion && fresh.version !== loadedVersion) {
-                    reloadForNewVersion();
-                }
+                apply(fresh);
+                // Der Server ist erreichbar – gute Gelegenheit für Liegengebliebenes.
+                send();
             })
             .catch(function () {
                 /* Kein Netz: die lokale Uhr genügt, um den Knopf zurückzuholen. */
             });
     }
 
-    render();
+    /* Den ältesten offenen Tipp an den Server schicken. Klappt es, gleich den
+       nächsten hinterher – es können mehrere sein, wenn das iPad morgens und
+       abends ohne Netz war. */
+    function send() {
+        if (sending || queue.length === 0 || !form) {
+            return;
+        }
+        sending = true;
+        lastAttempt = Date.now();
 
-    // Umschalten, sobald das Fenster abläuft, während die Seite offen liegt.
-    setInterval(render, 20000);
+        var tap = queue[0];
+        var data = new FormData();
+        data.append('geraet', deviceHint);
+        data.append('tap', tap.id);
+        data.append('vor_ms', String(Math.max(0, Date.now() - tap.at)));
+        data.append('stand', String(state.now));
+
+        // Ohne Zeitlimit hinge ein Versuch in einem wackligen WLAN beliebig
+        // lange – und blockierte alle weiteren.
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        var timer = controller ? setTimeout(function () { controller.abort(); }, SEND_TIMEOUT) : null;
+
+        function finish(delivered, fresh) {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            sending = false;
+            failed = !delivered;
+
+            if (delivered) {
+                forget(tap.id);
+            }
+            if (fresh) {
+                apply(fresh);
+            } else {
+                render();
+            }
+            if (delivered && queue.length) {
+                send();
+            }
+        }
+
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            body: data,
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: controller ? controller.signal : undefined
+        })
+            .then(function (response) {
+                // 422: der Server nimmt diesen Tipp nie an (zu alt). Ihn
+                // weiter zu schicken, änderte nichts.
+                if (response.status === 422) {
+                    finish(true, null);
+                    return;
+                }
+                if (!response.ok) {
+                    finish(false, null);
+                    return;
+                }
+                return response.json().then(function (fresh) {
+                    finish(isState(fresh), isState(fresh) ? fresh : null);
+                }, function () {
+                    finish(false, null);
+                });
+            })
+            .catch(function () {
+                finish(false, null);
+            });
+    }
+
+    if (form && window.fetch && window.FormData) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            queue.push({ id: newTapId(), at: Date.now() });
+            saveQueue();
+            failed = false;
+            render();
+            send();
+        });
+    }
+
+    render();
+    // Was beim letzten Mal liegen blieb, gleich versuchen.
+    send();
+
+    // Umschalten, sobald das Fenster abläuft, während die Seite offen liegt –
+    // und offene Tipps immer wieder anbieten, solange es welche gibt.
+    setInterval(function () {
+        render();
+        if (queue.length && Date.now() - lastAttempt >= RETRY_AFTER) {
+            send();
+        }
+    }, 20000);
 
     // Abgleich mit dem Server, solange die Seite tatsächlich zu sehen ist.
     setInterval(function () {
@@ -151,6 +360,7 @@
         if (!document.hidden) {
             render();
             refresh();
+            send();
         }
     });
 
@@ -158,8 +368,12 @@
     window.addEventListener('pageshow', function () {
         render();
         refresh();
+        send();
     });
 
     window.addEventListener('focus', refresh);
-    window.addEventListener('online', refresh);
+    window.addEventListener('online', function () {
+        refresh();
+        send();
+    });
 })();
