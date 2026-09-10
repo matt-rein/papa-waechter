@@ -97,6 +97,29 @@ php bin/console app:check-alive            # echt (versendet ggf. Mails)
 php bin/console app:check-alive --dry-run  # nur anzeigen, nichts senden
 ```
 
+### Zustände durchspielen
+
+Um den grünen Knopf oder einen Alarm zu sehen, muss niemand sechs bzw. 26
+Stunden warten – und schon gar nicht die Fristen herunterdrehen. Wer das tut,
+prüft anschließend eine Konfiguration, die es in Produktion nicht gibt.
+`bin/dev-testdaten.sh` verstellt stattdessen das Alter der Check-ins:
+
+```bash
+bin/dev-testdaten.sh neu          # Historie neu setzen (7 Einträge, wie bei Papa)
+bin/dev-testdaten.sh bestaetigt   # jüngster vor 2 h  -> Seite zeigt den Haken
+bin/dev-testdaten.sh knopf        # jüngster vor 7 h  -> grüner Knopf ist zurück
+bin/dev-testdaten.sh alarm        # jüngster vor 27 h -> über der Schwelle
+bin/dev-testdaten.sh zurueck 12   # alles um 12 h zurückdatieren
+bin/dev-testdaten.sh              # nur den Stand anzeigen
+```
+
+Verschoben wird immer die *gesamte* Historie, nie eine einzelne Zeile: die
+kann sonst hinter die zweitjüngste rutschen, und dann ist unbemerkt ein
+anderer Eintrag "der letzte Check-in".
+
+Das Skript arbeitet ausschließlich auf `data/data_dev.db` und bricht ab, wenn
+die Datei fehlt – auf dem Server gibt es sie nicht.
+
 ---
 
 ## Lokal mit Docker testen
