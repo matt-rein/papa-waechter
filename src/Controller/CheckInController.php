@@ -116,6 +116,8 @@ class CheckInController extends AbstractController
             $watchee,
             $request->getClientIp(),
             $request->headers->get('User-Agent'),
+            // Was der Browser über sich meldet; leer, wenn kein JavaScript lief.
+            $request->request->getString('geraet') ?: null,
         );
 
         // Redirect-after-POST: verhindert versehentliches erneutes Absenden

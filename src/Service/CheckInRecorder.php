@@ -25,13 +25,18 @@ class CheckInRecorder
     /**
      * @return bool true, wenn dieser Check-in einen aktiven Alarm aufgelöst hat
      */
-    public function record(Watchee $watchee, ?string $ipAddress = null, ?string $userAgent = null): bool
-    {
+    public function record(
+        Watchee $watchee,
+        ?string $ipAddress = null,
+        ?string $userAgent = null,
+        ?string $deviceHint = null,
+    ): bool {
         $checkIn = new CheckIn();
         $checkIn->setWatchee($watchee);
         $checkIn->setOccurredAt(new \DateTimeImmutable('now'));
         $checkIn->setIpAddress($ipAddress);
         $checkIn->setUserAgent($userAgent);
+        $checkIn->setDeviceHint($deviceHint);
 
         $this->em->persist($checkIn);
 

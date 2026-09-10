@@ -29,6 +29,22 @@
     var nextAt = document.getElementById('next-at');
     var statusUrl = body.getAttribute('data-status-url');
 
+    /* Welches Gerät hier tippt.
+
+       Safari auf dem iPad meldet sich seit iPadOS 13 als "Macintosh" – Zeichen
+       für Zeichen wie ein echter Mac. Im Browser sind die beiden sehr wohl zu
+       unterscheiden: ein iPad hat Touch-Punkte, ein Mac hat keine. Dazu
+       navigator.standalone, das nur gesetzt ist, wenn die Seite vom Homescreen
+       aus gestartet wurde – genau so läuft sie auf Papas iPad.
+
+       Mitgeschickt werden die Messwerte, nicht die Deutung: was sie bedeuten,
+       entscheidet der Server, und das lässt sich später ändern. */
+    var hintField = document.getElementById('device-hint');
+    if (hintField) {
+        hintField.value = 'touch=' + (navigator.maxTouchPoints || 0) +
+            ';standalone=' + (navigator.standalone === true ? '1' : '0');
+    }
+
     var state;
     try {
         state = JSON.parse(body.getAttribute('data-state'));

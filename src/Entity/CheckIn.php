@@ -33,6 +33,19 @@ class CheckIn
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $userAgent = null;
 
+    /**
+     * Was der Browser über sich selbst verrät – weil der User-Agent es nicht tut.
+     *
+     * Safari auf dem iPad meldet sich seit iPadOS 13 als "Macintosh", Zeichen
+     * für Zeichen dieselbe Kennung wie ein echter Mac. Aus dem User-Agent sind
+     * die beiden deshalb grundsätzlich nicht zu trennen; im Browser schon.
+     *
+     * Gespeichert werden die Messwerte ("touch=5;standalone=1"), nicht das
+     * fertige Etikett: die Deutung kann sich ändern, die Messung nicht.
+     */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $deviceHint = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -77,6 +90,20 @@ class CheckIn
     public function getUserAgent(): ?string
     {
         return $this->userAgent;
+    }
+
+    public function getDeviceHint(): ?string
+    {
+        return $this->deviceHint;
+    }
+
+    public function setDeviceHint(?string $deviceHint): static
+    {
+        $this->deviceHint = $deviceHint !== null && $deviceHint !== ''
+            ? mb_substr($deviceHint, 0, 64)
+            : null;
+
+        return $this;
     }
 
     public function setUserAgent(?string $userAgent): static

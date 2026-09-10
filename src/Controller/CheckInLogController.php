@@ -158,23 +158,59 @@ class CheckInLogController extends AbstractController
     }
 
     /**
-     * Aus dem User-Agent nur das, was hier zählt: kam die Bestätigung vom
-     * iPad neben Papas Sessel oder von einem anderen Gerät? Der vollständige
-     * String macht die Tabelle unlesbar und sagt nichts Zusätzliches.
+     * Nur das, was hier zählt: kam die Bestätigung vom iPad neben Papas Sessel
+     * oder von einem anderen Gerät? Der vollständige User-Agent macht die
+     * Tabelle unlesbar und sagt nichts Zusätzliches.
+     *
+     * Der User-Agent allein genügt dafür nicht. Safari auf dem iPad meldet sich
+     * seit iPadOS 13 als "Macintosh" – Zeichen für Zeichen dieselbe Kennung wie
+     * ein echter Mac. Deshalb schickt die Check-in-Seite mit, was nur der
+     * Browser weiß; siehe CheckIn::$deviceHint.
      */
     private function device(CheckIn $entry): string
     {
-        $agent = $entry->getUserAgent();
-        if ($agent === null || $agent === '') {
+        $agent = (string) $entry->getUserAgent();
+        if ($agent === '') {
             return '';
         }
 
-        foreach (['iPad', 'iPhone', 'Macintosh', 'Android', 'Windows'] as $needle) {
+        // Die Angabe des Browsers schlägt jedes Raten am User-Agent.
+        $resolved = $this->resolveApple($agent, $entry->getDeviceHint());
+        if ($resolved !== null) {
+            return $resolved;
+        }
+
+        foreach (['iPad', 'iPhone', 'Android', 'Windows'] as $needle) {
             if (str_contains($agent, $needle)) {
                 return $needle;
             }
         }
 
         return mb_substr($agent, 0, 24);
+    }
+
+    /**
+     * Löst die Apple-Kennung auf, soweit möglich.
+     *
+     * Ein iPad hat Touch-Punkte, ein Mac hat keine – das ist der einzige
+     * verlässliche Unterschied. Fehlt die Angabe (Einträge von vor dieser
+     * Funktion, oder kein JavaScript), bleibt die Frage offen: dann lieber die
+     * Unsicherheit zeigen als eine Gewissheit behaupten, die es nicht gibt.
+     *
+     * @return ?string null, wenn es keine Macintosh-Kennung ist
+     */
+    private function resolveApple(string $agent, ?string $hint): ?string
+    {
+        if (!str_contains($agent, 'Macintosh')) {
+            return null;
+        }
+
+        if ($hint === null || $hint === '') {
+            return 'Mac oder iPad';
+        }
+
+        parse_str(str_replace(';', '&', $hint), $values);
+
+        return ((int) ($values['touch'] ?? 0)) > 0 ? 'iPad' : 'Mac';
     }
 }

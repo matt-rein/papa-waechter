@@ -45,6 +45,10 @@
             <p class="greeting">Alles in Ordnung?</p>
 
             <form class="confirm-form" method="post" action="{{ path('app_checkin_confirm', {token: token}) }}">
+                {# Füllt checkin.js: der User-Agent verrät nicht, ob hier ein
+                   iPad oder ein Mac tippt – Apple sendet für beide dasselbe.
+                   Bleibt leer, wenn kein JavaScript läuft. #}
+                <input type="hidden" name="geraet" id="device-hint" value="">
                 <button type="submit" class="confirm-btn">
                     <span class="check">✓</span>
                     Mir geht&rsquo;s gut
