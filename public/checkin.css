@@ -274,6 +274,26 @@ body.has-photo.confirmed .status.done {
     -webkit-backdrop-filter: blur(6px);
 }
 
+/* Nach dem Tipp springt die Karte kurz auf, der Haken setzt nach. */
+body.has-photo.confirmed .status,
+body.has-photo.confirmed .status.done {
+    animation: card-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+body.has-photo.confirmed .status .big-check {
+    animation: check-pop 0.5s 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+@keyframes card-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes check-pop {
+    0%   { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
 body.has-photo.confirmed .status .big-check {
     font-size: 2.6rem;
     color: #86e39b;
@@ -300,4 +320,75 @@ body.has-photo.confirmed .next-info {
 body.has-photo.confirmed .last-info,
 body.has-photo.confirmed .footer-note {
     display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Zehn Sekunden später: die Karte räumt das Bild frei.
+
+   Haken und "Danke" haben ihren Zweck erfüllt, sobald Papa sie gelesen hat.
+   Danach stehen sie nur noch vor den Gesichtern – übrig bleibt die eine Zeile,
+   die er später wirklich braucht: wann der grüne Knopf wiederkommt.
+   --------------------------------------------------------------------------- */
+
+body.has-photo.confirmed.slim .status,
+body.has-photo.confirmed.slim .status.done {
+    position: fixed;
+    left: 50%;
+    /* env(): auf dem iPad bleibt der Streifen über dem Home-Indikator. */
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    /* Die Animation setzt denselben Versatz noch einmal – hier steht er, damit
+       die Zeile auch ohne laufende Animation mittig sitzt. */
+    transform: translateX(-50%);
+    /* Über dem Schleier (z-index 1), sonst läge die Zeile unter dem Foto. */
+    z-index: 3;
+    max-width: calc(100% - 32px);
+    padding: 12px 22px;
+    background: rgba(10, 14, 18, 0.55);
+    animation: slim-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+/* Übergang: die Karte zieht sich nach unten zusammen und blendet aus –
+   so sieht man, wohin sie geht, bevor die schmale Zeile dort auftaucht. */
+body.has-photo.confirmed.slimming .status,
+body.has-photo.confirmed.slimming .status.done {
+    animation: card-out 0.38s ease-in both;
+}
+
+@keyframes card-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(40px) scale(0.6); }
+}
+
+/* Der Rest der Karte verschwindet. Kein [hidden], damit checkin.js weiter
+   allein darüber bestimmt, was "gesendet" und "wird nachgeschickt" anzeigt. */
+body.has-photo.confirmed.slim .status .big-check,
+body.has-photo.confirmed.slim .status .title,
+body.has-photo.confirmed.slim .status .sub {
+    display: none;
+}
+
+body.has-photo.confirmed.slim .status .next-info {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #fff;
+}
+
+@keyframes slim-in {
+    from { opacity: 0; transform: translate(-50%, 24px) scale(0.9); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.has-photo.confirmed.slim .status,
+    body.has-photo.confirmed.slim .status.done {
+        animation: none;
+        transform: translateX(-50%);
+    }
+
+    body.has-photo.confirmed .status,
+    body.has-photo.confirmed .status.done,
+    body.has-photo.confirmed .status .big-check,
+    body.has-photo.confirmed.slimming .status {
+        animation: none;
+    }
 }

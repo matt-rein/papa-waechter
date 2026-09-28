@@ -90,6 +90,18 @@
     var failed = false;
     var lastAttempt = 0;
 
+    /* Wie lange die volle Bestätigung stehen bleibt, bevor sie zur Zeile am
+       unteren Rand schrumpft. Der Haken ist die Quittung für den Tipp; danach
+       verdeckt die Karte nur noch das Familienfoto. */
+    var SLIM_AFTER = 4000;
+    // So lange darf die Karte sichtbar zusammenschrumpfen (siehe .slimming im CSS).
+    var SLIM_OUT = 380;
+    var slim = false;
+    var slimming = false;
+    var slimTimer = null;
+    // Ob der Tipp in dieser Sitzung gefallen ist – siehe updateSlim().
+    var tappedHere = false;
+
     function loadQueue() {
         var list;
         try {
@@ -148,6 +160,49 @@
         return (n < 10 ? '0' : '') + n;
     }
 
+    /* Wann die Bestätigung zur schmalen Zeile am unteren Rand wird.
+
+       Erst, wenn der Tipp wirklich beim Server liegt: solange einer noch
+       unterwegs ist, steht in der Karte, dass er nachgeschickt wird – das darf
+       nicht wegschrumpfen, bevor es jemand gelesen hat.
+
+       Wer die App nur wieder aufmacht, hat das "Danke" längst gesehen; dann
+       gleich schmal, statt das Foto noch einmal zehn Sekunden zu verdecken. */
+    function updateSlim(delivered) {
+        if (!delivered) {
+            if (slimTimer) {
+                clearTimeout(slimTimer);
+                slimTimer = null;
+            }
+            slim = false;
+            slimming = false;
+
+            return;
+        }
+
+        if (slim || slimTimer) {
+            return;
+        }
+
+        if (!tappedHere) {
+            slim = true;
+
+            return;
+        }
+
+        // Erst schrumpft die Karte weg, dann gleitet die Zeile von unten herein.
+        slimTimer = setTimeout(function () {
+            slimming = true;
+            render();
+            slimTimer = setTimeout(function () {
+                slimTimer = null;
+                slimming = false;
+                slim = true;
+                render();
+            }, SLIM_OUT);
+        }, SLIM_AFTER);
+    }
+
     function render() {
         var now = Date.now();
         var serverConfirmed = state.expiresAt !== null && (now + skew) < state.expiresAt * 1000;
@@ -169,6 +224,10 @@
         show(doneSent, !waiting);
         show(doneSending, waiting && !failed);
         show(doneOffline, waiting && failed);
+
+        updateSlim(confirmed && !waiting);
+        body.classList.toggle('slim', slim);
+        body.classList.toggle('slimming', slimming);
 
         lastInfo.hidden = !state.lastText;
         if (state.lastText) {
@@ -331,6 +390,7 @@
             queue.push({ id: newTapId(), at: Date.now() });
             saveQueue();
             failed = false;
+            tappedHere = true;
             render();
             send();
         });
