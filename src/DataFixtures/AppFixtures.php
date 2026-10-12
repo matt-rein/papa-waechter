@@ -38,10 +38,10 @@ class AppFixtures extends Fixture
         $papa->setAlertState($state);
         $manager->persist($state);
 
-        // --- Wächter (du + Schwester) ---
+        // --- Wächter (zwei Kinder) ---
         $guardians = [
-            ['mre@reinhardt-online.de', 'Matthias', true],
-            ['schwester@example.com', 'Schwester', true],
+            ['sohn@example.com', 'Sohn', true],
+            ['tochter@example.com', 'Tochter', true],
         ];
 
         foreach ($guardians as [$email, $name, $alerts]) {

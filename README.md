@@ -2,10 +2,11 @@
 
 Ein „Lebenszeichen"-System (Dead-Man's-Switch): Papa bestätigt morgens und abends
 per Tipp auf seinem iPad, dass alles in Ordnung ist. Bleibt die Bestätigung länger
-als 26 Stunden aus, werden die Wächter (z. B. Matthias und Schwester) automatisch
-per E-Mail alarmiert.
+als 26 Stunden aus, werden die Wächter (z. B. seine Kinder) automatisch per
+E-Mail alarmiert.
 
-Gebaut mit Symfony 7, SQLite und FrankenPHP. **Ohne CDN** – alle Assets werden
+Gebaut mit Symfony 7.4 (PHP 8.4) und SQLite. Läuft auf klassischem Webhosting
+oder als Docker-Container mit FrankenPHP. **Ohne CDN** – alle Assets werden
 lokal ausgeliefert.
 
 ---
@@ -13,7 +14,7 @@ lokal ausgeliefert.
 ## Wie es funktioniert
 
 - **Papa** öffnet ein Homescreen-Icon (eine Web-Seite als PWA) und tippt auf den
-  großen Knopf **„Mir geht's gut"**. Kein Login, Zugang über einen geheimen Link.
+  großen Knopf **„Ich lebe noch“**. Kein Login, Zugang über einen geheimen Link.
 - **Zwei getrennte Fristen.** Nach einer Bestätigung zeigt die Seite den Haken und
   nennt die Uhrzeit, ab der der Knopf wieder da ist – nach `CHECKIN_WINDOW_HOURS`
   (Standard 6). So passt „morgens und abends“ hinein. **Alarmiert** wird davon
@@ -39,10 +40,12 @@ lokal ausgeliefert.
   Tippen, kein Seitenaufbau, kein neuer Code. Gegen Endlosschleifen bremst
   `sessionStorage` auf höchstens ein Neuladen alle fünf Minuten.
 
-> **Einmalig von Hand:** Geräte, auf denen noch eine Fassung *ohne*
-> `checkin.js` offen liegt, erreicht auch das nicht – die alte Seite hatte
-> überhaupt kein JavaScript. Dort die App einmal im App-Umschalter schließen
-> und neu öffnen. Danach aktualisiert sie sich für immer selbst.
+
+  > **Einmalig von Hand:** Geräte, auf denen noch eine Fassung *ohne*
+  > `checkin.js` offen liegt, erreicht auch das nicht – die alte Seite hatte
+  > überhaupt kein JavaScript. Dort die App einmal im App-Umschalter schließen
+  > und neu öffnen. Danach aktualisiert sie sich für immer selbst.
+
 - **Kein Tipp geht verloren, nur weil gerade das Netz fehlt.** `checkin.js`
   schickt den Tipp per `fetch` und hält ihn in `localStorage` fest, bis der
   Server ihn bestätigt hat. Solange zeigt die Seite den Haken mit dem Hinweis
@@ -55,6 +58,12 @@ lokal ausgeliefert.
   kommt er doppelt an, wird er einmal gespeichert. Tipps, die älter als
   sieben Tage sind, verfallen. Einen laufenden Alarm beendet ein
   nachgemeldeter Tipp nur, wenn er jünger als die Alarmschwelle ist.
+- **Nach dem Tipp gehört der Bildschirm dem Foto.** Vier Sekunden nach der
+  Bestätigung schrumpft die Karte mit Haken und „Danke“ zu einer schmalen
+  Zeile am unteren Rand, die nur noch sagt, wann der grüne Knopf wiederkommt.
+  Geschrumpft wird erst, wenn der Tipp beim Server liegt – solange er noch
+  nachgeschickt wird, bleibt die volle Karte mit dem Hinweis stehen. Wer die
+  App nur wieder öffnet, sieht gleich die schmale Zeile.
 - **Wächter** melden sich am Dashboard an und sehen eine Status-Ampel
   (grün / gelb / rot) sowie den Verlauf aller Bestätigungen. Auf der Startseite
   steht außerdem eine aufklappbare **Bedienungsanleitung** (Homescreen-Symbol
@@ -84,6 +93,7 @@ lokal ausgeliefert.
 | `src/Command/CheckAliveCommand.php` | die Lebenszeichen-Prüfung (`app:check-alive`) |
 | `src/Command/MailTestCommand.php` | Testmail an eine Adresse (`app:mail:test`) |
 | `bin/cron-check-alive.sh` | Aufruf der Prüfung für klassische Cron-Dienste |
+| `bin/dev-testdaten.sh` | Zustände lokal durchspielen, ohne die Fristen zu verstellen |
 | `src/Service/` | Check-in-Aufzeichnung, Statusberechnung, Mailversand |
 
 ---
@@ -100,8 +110,8 @@ symfony server:start -d --no-tls              # http://127.0.0.1:8000
 Demo-Zugang nach dem Laden der Fixtures:
 
 - **Papa-Link:** <http://127.0.0.1:8000/checkin/demo-token-papa-0000000000000000>
-- **Dashboard-Login:** `mre@reinhardt-online.de` / Passwort `changeme`
-  (zweiter Wächter: `schwester@example.com` / `changeme`)
+- **Dashboard-Login:** `sohn@example.com` / Passwort `changeme`
+  (zweiter Wächter: `tochter@example.com` / `changeme`)
 
 Die Lebenszeichen-Prüfung manuell auslösen:
 
@@ -147,15 +157,19 @@ docker compose up --build
 - Der `cron`-Dienst prüft lokal alle **60 Sekunden**, damit man den Alarm schnell
   sieht (in Produktion: 15 Minuten).
 
-Zum schnellen Testen des Alarms: einfach ~1 Minute nicht einchecken bzw. den
-letzten Check-in in der DB löschen – die Alarm-Mail erscheint dann in Mailpit.
+Zum schnellen Testen des Alarms: `bin/dev-testdaten.sh alarm` auf dem
+Host-Rechner ausführen (der Container benutzt dieselbe `data/data_dev.db`).
+Beim nächsten Cron-Lauf erscheint die Alarm-Mail in Mailpit.
 
 ---
 
-## Produktion: DomainFactory (ohne Docker)
+## Produktion: klassisches Webhosting (ohne Docker)
 
-Die Domain ist **reinhardt.onl**, PHP ist `php84`, deployt wird per GitHub
-Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
+So läuft das Projekt im echten Betrieb: auf einem Shared-Hosting-Paket bei
+DomainFactory, mit SSH-Zugang und `php84` als PHP-Binary. Deployt wird per
+GitHub Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`. Bei
+anderen Hostern mit SSH und PHP 8.4 funktioniert es genauso, nur Pfade und der
+Name des PHP-Binarys unterscheiden sich.
 
 > **PHP 8.4 ist Pflicht, nicht Geschmackssache.** Die Doctrine-Pakete in der
 > `composer.lock` verlangen `^8.4`; unter 8.3 startet die App nicht.
@@ -165,7 +179,7 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
 
 ### Einmalige Einrichtung auf dem Server
 
-1. **Doc-Root der Domain auf `public/` setzen** (im DomainFactory-Kundenmenü).
+1. **Doc-Root der Domain auf `public/` setzen** (im Kundenmenü des Hosters).
    Ohne das läge der komplette Quellcode im Web.
 2. **`.env.local` anlegen** – Vorlage ist `.env.local.dist`. Darin muss
    `APP_ENV=prod` stehen; der Deploy bricht sonst mit einer Fehlermeldung ab,
@@ -184,11 +198,11 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
    liegt eines im Projekt. Alle 15 Minuten aufrufen:
 
    ```
-   /kunden/135359_61348/watcher/bin/cron-check-alive.sh
+   /kunden/123456_78901/papa-waechter/bin/cron-check-alive.sh
    ```
 
    Das Skript findet sein Projektverzeichnis selbst, sucht ein passendes PHP
-   (mindestens 8.4 – das nackte `php` ist am df.eu 7.4) und schreibt jeden Lauf
+   (mindestens 8.4 – das nackte `php` ist dort 7.4) und schreibt jeden Lauf
    nach `var/log/check-alive.log`. Bei Erfolg bleibt es still; im Fehlerfall
    geht die Ausgabe auf stderr, woraus der Cron-Dienst eine E-Mail an dich
    macht.
@@ -213,12 +227,12 @@ Actions (`.github/workflows/deploy.yml`) bei jedem Push auf `main`.
 | Secret | Bedeutung |
 |---|---|
 | `DEPLOY_SSH_KEY` | privater SSH-Schlüssel (der öffentliche liegt am Server) |
-| `DEPLOY_SSH_HOST` | SSH-Host bei DomainFactory |
+| `DEPLOY_SSH_HOST` | SSH-Host beim Hoster |
 | `DEPLOY_SSH_USER` | SSH-Benutzer |
 | `DEPLOY_PATH` | Projektverzeichnis auf dem Server (ohne `/public`) |
 | `DEPLOY_SSH_PORT` | optional, Standard 22 |
 | `DEPLOY_PHP_BIN` | optional, Standard `php84` (nacktes `php` ist dort 7.4) |
-| `DEPLOY_HEALTHCHECK_URL` | optional, z. B. `https://reinhardt.onl/login` |
+| `DEPLOY_HEALTHCHECK_URL` | optional, z. B. `https://papa.example.com/login` |
 
 ### Was der Deploy macht
 
@@ -228,8 +242,9 @@ dann per SSH: Datenbank-Backup, `APP_ASSET_VERSION` auf den Git-SHA setzen,
 
 Einen Asset-Build gibt es nicht – CSS und JavaScript liegen fertig in `public/`
 (auf dem Dashboard steht daneben etwas JavaScript inline in den Templates).
-CSS-, JS-, Template- und Code-Änderungen erledigt der `rsync`. Damit Browser die neuen Dateien auch wirklich holen, hängt Symfony an
-jede Asset-URL `?v=<Git-SHA>`; das ist besonders für Papas Seite wichtig, die als
+CSS-, JS-, Template- und Code-Änderungen erledigt der `rsync`. Damit Browser
+die neuen Dateien auch wirklich holen, hängt Symfony an jede Asset-URL
+`?v=<Git-SHA>`; das ist besonders für Papas Seite wichtig, die als
 Homescreen-App im Cache liegt.
 
 ### Was der Deploy niemals anfasst
@@ -251,7 +266,7 @@ an und behält die letzten zehn.
 
 ## Alternative: Produktion mit Docker
 
-Wird für reinhardt.onl nicht verwendet – bleibt aber lauffähig, falls das
+Wird im laufenden Betrieb nicht verwendet – bleibt aber lauffähig, falls das
 Projekt einmal auf einen eigenen Server umzieht. FrankenPHP kümmert sich dann
 automatisch um HTTPS (Let's Encrypt).
 
@@ -356,19 +371,18 @@ enthalten. Fehlen sie, wird einfach das Original ausgeliefert.
    kein anzeigbares Bild sind, listet `/fotos` unter „Nicht verwendet" auf, damit
    man nicht rätselt.
 
-Der Ordner liegt bewusst **neben dem Projekt und nicht unter `var/`** – dort
+Der Ordner liegt bewusst **im Projektverzeichnis und nicht unter `var/`** – dort
 wird bei Problemen gern mal aufgeräumt (Cache leeren, Ordner löschen), und die
 Originale wären weg. In `var/photo-cache/` landen nur die verkleinerten
 Fassungen; die dürfen jederzeit gelöscht werden und entstehen neu.
 
 Die Bilder sind **nicht im Repo** (siehe `photos/.gitignore`), **nicht im
 Docker-Image** (`.dockerignore`) und **vom Deploy ausgenommen**. Auf
-DomainFactory ist es schlicht der Ordner `photos/` im Projektverzeichnis; im
+klassischem Hosting ist es schlicht der Ordner `photos/` im Projektverzeichnis; im
 Docker-Betrieb mountet `compose.prod.yaml` ihn neben die compose-Datei.
 
 Öffentlich erreichbar sind sie nicht: ausgeliefert werden sie nur über Papas
 Check-in-Link (`/checkin/{token}/foto/{name}`) oder an angemeldete Wächter.
-Originale bleiben unangetastet, verkleinert wird erst beim Ausliefern.
 
 HEIC-Bilder vom iPhone werden abgewiesen, weil kein Browser sie anzeigt – die
 Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
@@ -376,9 +390,11 @@ Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
 ### Betriebshinweise
 
 - **Wächter für den Wächter:** Fällt der Server aus, läuft auch kein Cron und es
-  kommt kein Alarm. Empfehlung: den `app:check-alive`-Lauf zusätzlich von einem
-  externen Dienst (z. B. healthchecks.io) überwachen lassen (Ping am Ende des
-  Loops ergänzen).
+  kommt kein Alarm. Deshalb den `app:check-alive`-Lauf zusätzlich von einem
+  externen Dienst (z. B. healthchecks.io) überwachen lassen.
+  `bin/cron-check-alive.sh` pingt dafür nach jedem erfolgreichen Lauf die
+  `HEALTHCHECK_PING_URL` an. Der Docker-Loop (`docker/check-alive-loop.sh`)
+  kann das noch nicht – dort müsste der Ping ergänzt werden.
 - **Healthcheck des Cron-Dienstes** (nur Docker-Betrieb): nach jedem *erfolgreichen* Durchlauf fasst
   `check-alive-loop.sh` die Datei `var/cron-heartbeat` an;
   `docker/cron-healthcheck.sh` schlägt Alarm, wenn sie älter als zwei Intervalle
@@ -418,8 +434,10 @@ Fehlermeldung erklärt, wie man das iPhone auf JPEG umstellt.
 | `CHECKIN_WINDOW_HOURS` | Stunden, bis Papas Seite wieder den grünen Knopf zeigt (Standard 6) |
 | `APP_TIMEZONE` | Anzeige-Zeitzone (Standard `Europe/Berlin`) |
 | `DEFAULT_URI` | Basis-URL für Links in Mails/CLI |
-| `APP_ASSET_VERSION` | Cache-Busting für CSS; setzt der Deploy auf den Git-SHA |
+| `APP_ASSET_VERSION` | Cache-Busting für CSS und JS, und das Signal, auf das hin sich Papas offene Seite neu lädt; setzt der Deploy auf den Git-SHA |
 | `APP_PHOTO_DIR_LABEL` | Bilder-Ordner, wie er auf `/fotos` zum Kopieren angezeigt wird |
+| `CRON_PHP_BIN` | nur `bin/cron-check-alive.sh`: PHP-Binary für den Cron-Lauf |
+| `HEALTHCHECK_PING_URL` | nur `bin/cron-check-alive.sh`: wird nach jedem erfolgreichen Lauf angepingt |
 
 > Intern werden alle Zeitpunkte in **UTC** gespeichert und erst bei der Anzeige in
 > die lokale Zeitzone umgerechnet.

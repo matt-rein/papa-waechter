@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Ein "Wächter" – jemand, der das Dashboard einsehen und Alarme erhalten darf
- * (z. B. Matthias und seine Schwester).
+ * (z. B. die Kinder).
  */
 #[ORM\Entity(repositoryClass: GuardianRepository::class)]
 #[ORM\Table(name: 'guardian')]

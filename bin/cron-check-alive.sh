@@ -4,7 +4,7 @@
 # Shell-Skripte starten können und keine Befehle mit Argumenten.
 #
 # Eintrag im Kundenmenü, alle 15 Minuten:
-#   /kunden/135359_61348/watcher/bin/cron-check-alive.sh
+#   /kunden/123456_78901/papa-waechter/bin/cron-check-alive.sh
 #
 # Verhalten: Bei Erfolg still (Ausgabe nur ins Logfile), im Fehlerfall Ausgabe
 # auf stderr – daraus macht der Cron-Dienst eine E-Mail an dich.
